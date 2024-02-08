@@ -8,5 +8,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/ablyler/home-assistant-bradford-white-connect/issues",
   "requirements": ["bradford-white-connect-client==0.0.6"],
-  "version": "0.0.2"
+  "version": "0.0.3"
 }
