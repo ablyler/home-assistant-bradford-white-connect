@@ -1,7 +1,6 @@
 """Constants for the Bradford White Connect integration."""
 
 from datetime import timedelta
-from enum import Enum
 
 DOMAIN = "bradford-white-connect"
 
