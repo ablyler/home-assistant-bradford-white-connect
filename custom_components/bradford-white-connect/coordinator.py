@@ -2,13 +2,11 @@
 import logging
 
 from bradford_white_connect_client import (
-    BradfordWhiteConnectClient,
     BradfordWhiteConnectAuthenticationError,
+    BradfordWhiteConnectClient,
     BradfordWhiteConnectUnknownException,
 )
-
 from bradford_white_connect_client.types import Device
-
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed

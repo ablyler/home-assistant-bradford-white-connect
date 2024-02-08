@@ -6,15 +6,14 @@ import logging
 from typing import Any
 
 from bradford_white_connect_client import (
-    BradfordWhiteConnectClient,
     BradfordWhiteConnectAuthenticationError,
+    BradfordWhiteConnectClient,
 )
-import voluptuous as vol
-
 from homeassistant import config_entries
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import aiohttp_client
+import voluptuous as vol
 
 from .const import DOMAIN
 

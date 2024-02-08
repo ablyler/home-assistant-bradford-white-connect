@@ -4,7 +4,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from bradford_white_connect_client import BradfordWhiteConnectClient
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, Platform
 from homeassistant.core import HomeAssistant

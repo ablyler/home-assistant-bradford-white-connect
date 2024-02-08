@@ -1,11 +1,8 @@
 """The base entity for the Bradford White Connect integration."""
 from typing import TypeVar
 
-from bradford_white_connect_client import (
-    BradfordWhiteConnectClient,
-)
+from bradford_white_connect_client import BradfordWhiteConnectClient
 from bradford_white_connect_client.types import Device
-
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 

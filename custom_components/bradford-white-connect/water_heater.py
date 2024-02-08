@@ -4,7 +4,6 @@ from typing import Any
 
 from bradford_white_connect_client.constants import BradfordWhiteConnectHeatingModes
 from bradford_white_connect_client.types import Device
-
 from homeassistant.components.water_heater import (
     STATE_ECO,
     STATE_ELECTRIC,
