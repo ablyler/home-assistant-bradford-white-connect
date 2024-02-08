@@ -1,0 +1,19 @@
+{
+  "config": {
+    "error": {
+      "auth": "The authentication failed."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "hostname": "Hostname of Bradford White Connect instance (example: city.bradford-white-connect.us)",
+          "account_number": "Account number of water account",
+          "username": "Username of Bradford White Connect account",
+          "password": "Password of Bradford White Connect account"
+        },
+        "description": "Enter your Bradford White Connect Details.",
+        "title": "Authentication"
+      }
+    }
+  }
+}

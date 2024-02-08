@@ -1,0 +1,17 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+bradford-white-connect-client = "*"
+
+[dev-packages]
+pytest = "*"
+pytest-asyncio = "*"
+pytest-aiohttp = "*"
+pytest-cov = "*"
+pytest-homeassistant-custom-component = "*"
+
+[requires]
+python_version = "3.11"
