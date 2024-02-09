@@ -122,14 +122,14 @@ class BradfordWhiteConnectWaterHeaterEntity(
     def current_operation(self) -> str:
         """Return the current operation mode."""
         return MODE_BRADFORDWHITE_TO_HA.get(
-            self.device.properties["user_heat_mode"].value, STATE_OFF
+            self.device.properties["current_system_mode"].value, STATE_OFF
         )
 
     @property
     def is_away_mode_on(self):
         """Return True if away mode is on."""
         return (
-            self.device.properties["user_heat_mode"].value
+            self.device.properties["current_system_mode"].value
             == BradfordWhiteConnectHeatingModes.VACATION
         )
 
