@@ -3,7 +3,7 @@
 [![GitHub Release][releases-shield]][releases]
 [![hacs][hacsbadge]][hacs]
 
-This custom component for Home Assistant adds support for for reading water usage data from Bradford White Connect.
+This custom component for Home Assistant adds support for managing your water heater via the Bradford White Connect platform.
 
 ## Installation instruction
 
@@ -33,15 +33,15 @@ Once the integration is installed, you can add it to the Home Assistant by going
 
 This custom component creates following entities for each discovered dehumidifier:
 
-| Platform       | Description            |
-| -------------- | ---------------------- |
-| `water_heater` | Controler water heater |
+| Platform       | Description             |
+| -------------- | ----------------------- |
+| `water_heater` | Controller water heater |
 
 ## Troubleshooting
 
-If there are problems while using integration setup, an advanced debug logging can be activated via `Advanced settings` page.
+If there are problems with the integration setup, advanced debug logging can be activated via the `Advanced settings` page.
 
-Once activated, logs can be see by clicking at:
+Once activated, logs can be seen by:
 
 Select `Load Full Home Assistant Log` to see all debug mode logs. Please include as much logs as possible if you open an [issue](https://github.com/ablyler/home-assistant-bradford-white-connect/issues/new?assignees=&labels=&template=issue.md).
 
