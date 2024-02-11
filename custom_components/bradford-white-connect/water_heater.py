@@ -101,37 +101,49 @@ class BradfordWhiteConnectWaterHeaterEntity(
     @property
     def current_temperature(self) -> float | None:
         """Return the current temperature."""
-        return self.device.properties["tank_temp"].value
+        tank_temp = self.device.properties.get("tank_temp")
+        return tank_temp.value if tank_temp else None
 
     @property
     def target_temperature(self) -> float | None:
         """Return the temperature we try to reach."""
-        return self.device.properties["water_setpoint_out"].value
+        water_setpoint_out = self.device.properties.get("water_setpoint_out")
+        return water_setpoint_out.value if water_setpoint_out else None
 
     @property
     def min_temp(self) -> float:
         """Return the minimum temperature."""
-        return self.device.properties["water_setpoint_min"].value
+        water_setpoint_min = self.device.properties.get("water_setpoint_min")
+        return water_setpoint_min.value if water_setpoint_min else None
 
     @property
     def max_temp(self) -> float:
         """Return the maximum temperature."""
-        return self.device.properties["water_setpoint_max"].value
+        water_setpoint_max = self.device.properties.get("water_setpoint_max")
+        return water_setpoint_max.value if water_setpoint_max else None
 
     @property
     def current_operation(self) -> str:
         """Return the current operation mode."""
-        return MODE_BRADFORDWHITE_TO_HA.get(
-            self.device.properties["current_heat_mode"].value, STATE_OFF
-        )
+        current_heat_mode = self.device.properties.get("current_heat_mode")
+        if current_heat_mode:
+            return MODE_BRADFORDWHITE_TO_HA.get(
+                self.device.properties["current_heat_mode"].value, STATE_OFF
+            )
+        else:
+            return STATE_OFF
 
     @property
     def is_away_mode_on(self):
         """Return True if away mode is on."""
-        return (
-            self.device.properties["current_heat_mode"].value
-            == BradfordWhiteConnectHeatingModes.VACATION
-        )
+        current_heat_mode = self.device.properties.get("current_heat_mode")
+        if current_heat_mode:
+            return (
+                self.device.properties["current_heat_mode"].value
+                == BradfordWhiteConnectHeatingModes.VACATION
+            )
+        else:
+            return False
 
     async def async_set_operation_mode(self, operation_mode: str) -> None:
         """Set new target operation mode."""

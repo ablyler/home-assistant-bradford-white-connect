@@ -27,6 +27,7 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
     async def _async_update_data(self) -> dict[str, Device]:
         """Fetch latest data from the device status endpoint."""
         try:
+            await self.client.authenticate()
             devices = await self.client.get_devices()
         except BradfordWhiteConnectAuthenticationError as err:
             raise ConfigEntryAuthFailed from err
