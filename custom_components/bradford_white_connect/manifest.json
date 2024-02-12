@@ -1,5 +1,5 @@
 {
-  "domain": "bradford-white-connect",
+  "domain": "bradford_white_connect",
   "name": "Bradford White Connect",
   "codeowners": ["@ablyler"],
   "config_flow": true,

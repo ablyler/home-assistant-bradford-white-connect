@@ -2,7 +2,7 @@
 
 from datetime import timedelta
 
-DOMAIN = "bradford-white-connect"
+DOMAIN = "bradford_white_connect"
 
 CONF_HOSTNAME = "hostname"
 CONF_ACCOUNT_NUMBER = "account_number"
