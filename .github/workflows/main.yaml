@@ -113,6 +113,7 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
+          ignore: brands
 
   release:
     name: GitHub (Pre)Release
