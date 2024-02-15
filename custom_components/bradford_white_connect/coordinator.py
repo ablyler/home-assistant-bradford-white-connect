@@ -28,15 +28,23 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
         """Fetch latest data from the device status endpoint."""
         try:
             devices = await self.client.get_devices()
+            for device in devices:
+                properties = await self.client.get_device_properties(device)
+
+                remapped_properties = {p.property.name: p.property for p in properties}
+                device.properties = remapped_properties
+
+                """Validate the tank temp is valid"""
+                if (
+                    device.properties.get("tank_temp") < 0
+                    or device.properties.get("tank_temp") > 200
+                ):
+                    raise UpdateFailed(
+                        f"Tank temperature is invalid: {device.properties.get('tank_temp')}"
+                    )
+
+            return {device.dsn: device for device in devices}
         except BradfordWhiteConnectAuthenticationError as err:
             raise ConfigEntryAuthFailed from err
         except BradfordWhiteConnectUnknownException as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
-
-        for device in devices:
-            properties = await self.client.get_device_properties(device)
-
-            remapped_properties = {p.property.name: p.property for p in properties}
-            device.properties = remapped_properties
-
-        return {device.dsn: device for device in devices}
