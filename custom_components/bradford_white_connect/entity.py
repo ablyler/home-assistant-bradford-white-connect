@@ -1,4 +1,5 @@
 """The base entity for the Bradford White Connect integration."""
+
 from typing import TypeVar
 
 from bradford_white_connect_client import BradfordWhiteConnectClient
