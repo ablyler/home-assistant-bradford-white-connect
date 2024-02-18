@@ -6,6 +6,7 @@ from bradford_white_connect_client import (
     BradfordWhiteConnectClient,
     BradfordWhiteConnectUnknownException,
 )
+from bradford_white_connect_client.constants import BradfordWhiteConnectHeatingModes
 from bradford_white_connect_client.types import Device
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -34,14 +35,32 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
                 remapped_properties = {p.property.name: p.property for p in properties}
                 device.properties = remapped_properties
 
-                tank_temp = device.properties.get("tank_temp")
-                if tank_temp is None:
-                    raise UpdateFailed("Tank temperature is missing")
+                temp_properties = [
+                    "tank_temp",
+                    "water_setpoint_out",
+                    "water_setpoint_min",
+                    "water_setpoint_max",
+                ]
 
-                """Validate the tank temp is valid"""
-                if tank_temp.value < 0 or tank_temp.value > 200:
+                for property in temp_properties:
+                    """Validate the temp property is valid"""
+                    device_property = device.properties.get(property)
+                    if device_property is None:
+                        raise UpdateFailed(f"Device property {property} is missing")
+
+                    if device_property.value < 0 or device_property.value > 200:
+                        raise UpdateFailed(
+                            f"Device property {property} is invalid: {device_property.value}"
+                        )
+
+                """Validate the current heat mode is valid"""
+                device_property = device.properties.get("current_heat_mode")
+                if device_property is None:
+                    raise UpdateFailed("Device property 'current_heat_mode' is missing")
+
+                if device_property.value not in BradfordWhiteConnectHeatingModes:
                     raise UpdateFailed(
-                        f"Tank temperature is invalid: {device.properties.get('tank_temp').value}"
+                        f"Device property 'current_heat_mode' is invalid: {device_property.value}"
                     )
 
             return {device.dsn: device for device in devices}
