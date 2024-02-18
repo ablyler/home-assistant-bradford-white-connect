@@ -1,4 +1,5 @@
-"""The data update coordinator for the A. O. Smith integration."""
+"""The data update coordinator for the Bradford White Connect integration."""
+
 import logging
 
 from bradford_white_connect_client import (
