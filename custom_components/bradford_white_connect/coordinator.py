@@ -59,7 +59,7 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
                 if device_property is None:
                     raise UpdateFailed("Device property 'current_heat_mode' is missing")
 
-                if device_property.value not in BradfordWhiteConnectHeatingModes:
+                if not BradfordWhiteConnectHeatingModes.is_valid(device_property.value):
                     raise UpdateFailed(
                         f"Device property 'current_heat_mode' is invalid: {device_property.value}"
                     )
