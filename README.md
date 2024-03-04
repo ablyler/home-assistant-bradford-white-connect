@@ -75,7 +75,7 @@ Home Assistant needs to be restarted after this change.
 
 Bradford White Connect and other names are trademarks of their respective owners.
 
-[add-integration]: https://my.home-assistant.io/redirect/config_flow_start?domain=bradford-white-connect
+[add-integration]: https://my.home-assistant.io/redirect/config_flow_start?domain=bradford_white_connect
 [add-integration-badge]: https://my.home-assistant.io/badges/config_flow_start.svg
 [hacs]: https://hacs.xyz
 [hacs-download]: https://hacs.xyz/docs/setup/download
