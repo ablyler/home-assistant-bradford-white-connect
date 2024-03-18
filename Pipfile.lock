@@ -455,6 +455,14 @@
         }
     },
     "develop": {
+        "acme": {
+            "hashes": [
+                "sha256:0955694971d638a5797fa5cc17ef90ad92b070ca6a0bf32d377077781ba617c2",
+                "sha256:f1f700ce60d84512fcd19a887f03557fd58e861b3fa061861f90cb90fdbbf208"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==2.8.0"
+        },
         "aiofiles": {
             "hashes": [
                 "sha256:19297512c647d4b27a2cf7c34caa7e405c0d60b5560618a29a9fe027b18b0107",
@@ -609,6 +617,14 @@
             "markers": "python_version >= '3.9' and python_version < '4.0'",
             "version": "==1.1.1"
         },
+        "async-timeout": {
+            "hashes": [
+                "sha256:4640d96be84d82d02ed59ea2b7105a0f7b33abe8703703cd0ab0bf87c427522f",
+                "sha256:7405140ff1230c310e51dc27b3145b9092d659ce68ff733fb0cefe3ee42be028"
+            ],
+            "markers": "python_version >= '3.7'",
+            "version": "==4.0.3"
+        },
         "atomicwrites-homeassistant": {
             "hashes": [
                 "sha256:01457de800961db7d5b575f3c92e7fb56e435d88512c366afb0873f4f092bb0d",
@@ -692,11 +708,11 @@
         },
         "bluetooth-auto-recovery": {
             "hashes": [
-                "sha256:36ebf08e7cf44e35c15175323aed91e1bf2418792a4c3f76165d16d0f437614b",
-                "sha256:f804c59f1302830f9343f96bf0d150e6e51983e951ecd7ffe6f28d2286932717"
+                "sha256:49438830f49d9fb7e57bcd8ace526b0e523505a797ec7225a7a28c3641144d30",
+                "sha256:8bac63dda39a8dfd7164af88d43c1ef27661108ec182a9327677b76e3222698d"
             ],
             "markers": "python_version >= '3.9' and python_version < '4.0'",
-            "version": "==1.3.0"
+            "version": "==1.4.0"
         },
         "bluetooth-data-tools": {
             "hashes": [
@@ -730,6 +746,22 @@
             ],
             "markers": "python_version >= '3.10' and python_version < '4.0'",
             "version": "==1.19.0"
+        },
+        "boto3": {
+            "hashes": [
+                "sha256:8c6fbd3d45399a4e4685010117fb2dc52fc6afdab5a9460957d463ae0c2cc55d",
+                "sha256:e5d681f443645e6953ed0727bf756bf16d85efefcb69cf051d04a070ce65e545"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==1.34.64"
+        },
+        "botocore": {
+            "hashes": [
+                "sha256:084f8c45216d62dc1add2350e236a2d5283526aacd0681e9818b37a6a5e5438b",
+                "sha256:0ab760908749fe82325698591c49755a5bb20307d85a419aca9cc74e783b9407"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==1.34.64"
         },
         "btsocket": {
             "hashes": [
@@ -1098,6 +1130,22 @@
             "markers": "platform_system == 'Linux'",
             "version": "==2.21.1"
         },
+        "ecdsa": {
+            "hashes": [
+                "sha256:190348041559e21b22a1d65cee485282ca11a6f81d503fddb84d5017e9ed1e49",
+                "sha256:80600258e7ed2f16b9aa1d7c295bd70194109ad5a30fdee0eaeefef1d4c559dd"
+            ],
+            "markers": "python_version >= '2.6' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+            "version": "==0.18.0"
+        },
+        "envs": {
+            "hashes": [
+                "sha256:4a1fcf85e4d4443e77c348ff7cdd3bfc4c0178b181d447057de342e4172e5ed1",
+                "sha256:9d8435c6985d1cdd68299e04c58e2bdb8ae6cf66b2596a8079e6f9a93f2a0398"
+            ],
+            "markers": "python_version >= '3.6' and python_version < '4.0'",
+            "version": "==1.4"
+        },
         "execnet": {
             "hashes": [
                 "sha256:88256416ae766bc9e8895c76a87928c0012183da3cc4fc18016e6f050e025f41",
@@ -1302,6 +1350,14 @@
             "markers": "python_version >= '3.10' and python_version < '3.13'",
             "version": "==2.4.2"
         },
+        "hass-nabucasa": {
+            "hashes": [
+                "sha256:24ef055517ae2af112f06cd2c206b6e7c30e983ba8d8dac7d6948e582720ae87",
+                "sha256:f2bb020398bfa2e9f4cf5a3e88016037f5edc16c1b4b6360f3c4d37aee0fcecd"
+            ],
+            "markers": "python_version >= '3.10'",
+            "version": "==0.78.0"
+        },
         "home-assistant-bluetooth": {
             "hashes": [
                 "sha256:9b3cea07e50f0521d805a3fef102a338aaeb532576f100844a155b890ac97381",
@@ -1312,11 +1368,11 @@
         },
         "homeassistant": {
             "hashes": [
-                "sha256:1bd335595face33bbd058d74456989ef582169f00e1cc8e7091e813a582082e3",
-                "sha256:a4054372e79ab842979f1fce4f210ad51fcb996cc28e673c64c2738b60ac1413"
+                "sha256:19a6e777274da6b7f6562ed08e5d6d033d9b0a4897f8a8071ad1341e7b4fd0c3",
+                "sha256:58ad8f4d31439d033089702dc6334ea3dbb92955d69ea517a9ddbcea1ab45447"
             ],
             "markers": "python_full_version >= '3.11.0'",
-            "version": "==2024.3.0"
+            "version": "==2024.3.1"
         },
         "httpcore": {
             "hashes": [
@@ -1364,6 +1420,22 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==3.1.3"
+        },
+        "jmespath": {
+            "hashes": [
+                "sha256:02e2e4cc71b5bcab88332eebf907519190dd9e6e82107fa7f83b1003a6252980",
+                "sha256:90261b206d6defd58fdd5e85f478bf633a2901798906be2ad389150c5c60edbe"
+            ],
+            "markers": "python_version >= '3.7'",
+            "version": "==1.0.1"
+        },
+        "josepy": {
+            "hashes": [
+                "sha256:308b3bf9ce825ad4d4bba76372cf19b5dc1c2ce96a9d298f9642975e64bd13dd",
+                "sha256:d2b36a30f316269f3242f4c2e45e15890784178af5ec54fa3e49cf9234ee22e0"
+            ],
+            "markers": "python_version >= '3.7' and python_version < '4.0'",
+            "version": "==1.14.0"
         },
         "lru-dict": {
             "hashes": [
@@ -1760,6 +1832,21 @@
             "markers": "python_version >= '3.8'",
             "version": "==1.4.0"
         },
+        "pyasn1": {
+            "hashes": [
+                "sha256:4439847c58d40b1d0a573d07e3856e95333f1976294494c325775aeca506eb58",
+                "sha256:6d391a96e59b23130a5cfa74d6fd7f388dbbe26cc8f1edf39fdddf08d9d6676c"
+            ],
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4, 3.5'",
+            "version": "==0.5.1"
+        },
+        "pycognito": {
+            "hashes": [
+                "sha256:0a73c2bdc966465df3a61cba445f58beee9734638be7b10681792725651168eb",
+                "sha256:3843cfff56969f7c4b0b2fd499877941d0bf33e39c4541dc896c2b83bef5db24"
+            ],
+            "version": "==2023.5.0"
+        },
         "pycparser": {
             "hashes": [
                 "sha256:8ee45429555515e1f6b185e78100aea234072576aa43ab53aefcae078162fca9",
@@ -1833,6 +1920,13 @@
             "markers": "python_version >= '3.7'",
             "version": "==24.0.0"
         },
+        "pyrfc3339": {
+            "hashes": [
+                "sha256:67196cb83b470709c580bb4738b83165e67c6cc60e1f2e4f286cfcb402a926f4",
+                "sha256:81b8cbe1519cdb79bed04910dd6fa4e181faf8c88dff1e1b987b5f7ab23a5b1a"
+            ],
+            "version": "==1.1"
+        },
         "pyric": {
             "hashes": [
                 "sha256:b539b01cafebd2406c00097f94525ea0f8ecd1dd92f7731f43eac0ef16c2ccc9"
@@ -1885,12 +1979,12 @@
         },
         "pytest-homeassistant-custom-component": {
             "hashes": [
-                "sha256:72ac636d21ac4ebd2fdda43edc5ac2c167a09ebcc711635f2309e5e81a665e88",
-                "sha256:b8067a51de0954cffdfd639a2ca4a0e97d845bb38572bd944e0723e110ffd456"
+                "sha256:64c06464e1e5d0feef6a962947bb4180a37d492bb389b6fc746667b06de312e5",
+                "sha256:889a8fea90fd382dac57ab34775624643a1d7d4e51d8ca57eec28028440adbd0"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.11'",
-            "version": "==0.13.107"
+            "version": "==0.13.108"
         },
         "pytest-picked": {
             "hashes": [
@@ -1951,6 +2045,16 @@
             ],
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
             "version": "==2.9.0.post0"
+        },
+        "python-jose": {
+            "extras": [
+                "cryptography"
+            ],
+            "hashes": [
+                "sha256:55779b5e6ad599c6336191246e95eb2293a9ddebd555f796a65f838f07e5d78a",
+                "sha256:9b1376b023f8b298536eedd47ae1089bcdb848f1535ab30555cd92002d78923a"
+            ],
+            "version": "==3.3.0"
         },
         "python-slugify": {
             "hashes": [
@@ -2047,6 +2151,30 @@
             "markers": "python_version >= '3.7'",
             "version": "==0.20.2"
         },
+        "rsa": {
+            "hashes": [
+                "sha256:90260d9058e514786967344d0ef75fa8727eed8a7d2e43ce9f4bcf1b536174f7",
+                "sha256:e38464a49c6c85d7f1351b0126661487a7e0a14a50f1675ec50eb34d4f20ef21"
+            ],
+            "markers": "python_version >= '3.6' and python_version < '4'",
+            "version": "==4.9"
+        },
+        "s3transfer": {
+            "hashes": [
+                "sha256:5683916b4c724f799e600f41dd9e10a9ff19871bf87623cc8f491cb4f5fa0a19",
+                "sha256:ceb252b11bcf87080fb7850a224fb6e05c8a776bab8f2b64b7f25b969464839d"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==0.10.1"
+        },
+        "setuptools": {
+            "hashes": [
+                "sha256:0ff4183f8f42cd8fa3acea16c45205521a4ef28f73c6391d8a25e92893134f2e",
+                "sha256:c21c49fb1042386df081cb5d86759792ab89efca84cf114889191cd09aacc80c"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==69.2.0"
+        },
         "six": {
             "hashes": [
                 "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926",
@@ -2062,6 +2190,13 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==1.3.1"
+        },
+        "snitun": {
+            "hashes": [
+                "sha256:a51b4331acb77d72e6f9d6d34a9721d9411d09c804d75abbbccceb76d90076d1",
+                "sha256:f8f142a3b57aea887a3091a8182daefe3bb105e0d30f3aa9e2164ea1d00f6577"
+            ],
+            "version": "==0.36.2"
         },
         "sqlalchemy": {
             "hashes": [
