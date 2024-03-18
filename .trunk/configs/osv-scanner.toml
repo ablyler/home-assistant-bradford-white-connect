@@ -1,0 +1,3 @@
+[[IgnoredVulns]]
+id = "GHSA-wj6h-64fc-37mp"
+reason = "python-ecdsa used only in development, not in production"

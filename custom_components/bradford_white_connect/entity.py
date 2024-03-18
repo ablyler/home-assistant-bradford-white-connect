@@ -8,7 +8,10 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import BradfordWhiteConnectStatusCoordinator
+from .coordinator import (
+    BradfordWhiteConnectEnergyCoordinator,
+    BradfordWhiteConnectStatusCoordinator,
+)
 
 _BradfordWhiteConnectCoordinatorT = TypeVar(
     "_BradfordWhiteConnectCoordinatorT", bound=BradfordWhiteConnectStatusCoordinator
@@ -51,3 +54,19 @@ class BradfordWhiteConnectStatusEntity(
     def available(self) -> bool:
         """Return True if entity is available."""
         return super().available and self.device.connection_status == "Online"
+
+
+class BradfordWhiteConnectEnergyEntity(
+    BradfordWhiteConnectEntity[BradfordWhiteConnectEnergyCoordinator]
+):
+    """Base entity for entities that use data from the energy coordinator."""
+
+    @property
+    def energy_usage(self) -> float:
+        """Shortcut to get the energy usage from the coordinator data."""
+        return self.coordinator.data[self._dsn][self._energy_type]
+
+    # @property
+    # def available(self) -> bool:
+    #     """Return True if entity is available."""
+    #     return super().available and self._device.connection_status == "Online"

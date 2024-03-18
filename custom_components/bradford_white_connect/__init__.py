@@ -11,9 +11,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import aiohttp_client, device_registry as dr
 
 from .const import DOMAIN
-from .coordinator import BradfordWhiteConnectStatusCoordinator
+from .coordinator import (
+    BradfordWhiteConnectEnergyCoordinator,
+    BradfordWhiteConnectStatusCoordinator,
+)
 
-PLATFORMS: list[Platform] = [Platform.WATER_HEATER]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.WATER_HEATER]
 
 
 @dataclass
@@ -22,6 +25,7 @@ class BradfordWhiteConnectData:
 
     client: BradfordWhiteConnectClient
     status_coordinator: BradfordWhiteConnectStatusCoordinator
+    energy_coordinator: BradfordWhiteConnectEnergyCoordinator
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -34,7 +38,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await client.authenticate()
 
     status_coordinator = BradfordWhiteConnectStatusCoordinator(hass, client)
+    energy_corodinator = BradfordWhiteConnectEnergyCoordinator(hass, client)
     await status_coordinator.async_config_entry_first_refresh()
+    await energy_corodinator.async_config_entry_first_refresh()
 
     device_registry = dr.async_get(hass)
     for dsn, device in status_coordinator.data.items():
@@ -49,8 +55,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = BradfordWhiteConnectData(
-        client,
-        status_coordinator,
+        client, status_coordinator, energy_corodinator
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

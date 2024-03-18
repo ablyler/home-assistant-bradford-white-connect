@@ -51,6 +51,7 @@ async def async_setup_entry(
     """Set up Bradford White Connect water heater platform."""
     data: BradfordWhiteConnectData = hass.data[DOMAIN][entry.entry_id]
 
+    # Add water heater entities for each device
     async_add_entities(
         BradfordWhiteConnectWaterHeaterEntity(data.status_coordinator, dsn, device)
         for dsn, device in data.status_coordinator.data.items()
