@@ -31,11 +31,13 @@ Once the integration is installed, you can add it to the Home Assistant by going
 
 ## Supported entities
 
-This custom component creates following entities for each discovered dehumidifier:
+This custom component creates following entities for each discovered water heater:
 
-| Platform       | Description             |
-| -------------- | ----------------------- |
-| `water_heater` | Controller water heater |
+| Platform       | Description                                  |
+| -------------- | -------------------------------------------- |
+| `water_heater` | Controller water heater                      |
+| `sensor`       | Resistance energy usage for the current year |
+| `sensor`       | Heat pump energy usage for the previous year |
 
 ## Troubleshooting
 

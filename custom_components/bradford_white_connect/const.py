@@ -15,3 +15,7 @@ REGULAR_INTERVAL = timedelta(seconds=30)
 
 # Update interval to be used while a mode or setpoint change is in progress.
 FAST_INTERVAL = timedelta(seconds=1)
+
+# energy types
+ENERGY_TYPE_RESISTANCE = "resistance"
+ENERGY_TYPE_HEAT_PUMP = "heat_pump"
