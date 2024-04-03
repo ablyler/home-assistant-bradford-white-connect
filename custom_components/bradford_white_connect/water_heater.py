@@ -81,11 +81,11 @@ class BradfordWhiteConnectWaterHeaterEntity(
         self._device = device
 
     @property
-    def operation_list(self) -> list[str]:
+    async def operation_list(self) -> list[str]:
         """Return the list of supported operation modes."""
         ha_modes = []
 
-        supported_modes = self.client.get_device_heating_modes(self.device)
+        supported_modes = await self.client.get_device_heating_modes(self.device)
         for mode in supported_modes:
             ha_mode = MODE_BRADFORDWHITE_TO_HA.get(mode)
             if ha_mode:
@@ -94,12 +94,12 @@ class BradfordWhiteConnectWaterHeaterEntity(
         return ha_modes
 
     @property
-    def supported_features(self) -> WaterHeaterEntityFeature:
+    async def supported_features(self) -> WaterHeaterEntityFeature:
         """Return the list of supported features."""
         support_flags = WaterHeaterEntityFeature.TARGET_TEMPERATURE
 
         # Operation mode only supported if there is more than one mode
-        if len(self.operation_list) > 1:
+        if len(await self.operation_list) > 1:
             support_flags |= WaterHeaterEntityFeature.OPERATION_MODE
 
         support_flags |= WaterHeaterEntityFeature.AWAY_MODE
