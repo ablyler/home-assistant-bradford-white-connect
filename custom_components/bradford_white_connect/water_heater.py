@@ -8,6 +8,7 @@ from homeassistant.components.water_heater import (
     STATE_ECO,
     STATE_ELECTRIC,
     STATE_HEAT_PUMP,
+    STATE_HIGH_DEMAND,
     STATE_OFF,
     WaterHeaterEntity,
     WaterHeaterEntityFeature,
@@ -27,11 +28,13 @@ MODE_HA_TO_BRADFORDWHITE = {
     STATE_ECO: BradfordWhiteConnectHeatingModes.HYBRID,
     STATE_ELECTRIC: BradfordWhiteConnectHeatingModes.ELECTRIC,
     STATE_HEAT_PUMP: BradfordWhiteConnectHeatingModes.HEAT_PUMP,
+    STATE_HIGH_DEMAND: BradfordWhiteConnectHeatingModes.HYBRID_PLUS,
     STATE_OFF: BradfordWhiteConnectHeatingModes.VACATION,
 }
 MODE_BRADFORDWHITE_TO_HA = {
     BradfordWhiteConnectHeatingModes.ELECTRIC: STATE_ELECTRIC,
     BradfordWhiteConnectHeatingModes.HEAT_PUMP: STATE_HEAT_PUMP,
+    BradfordWhiteConnectHeatingModes.HYBRID_PLUS: STATE_HIGH_DEMAND,
     BradfordWhiteConnectHeatingModes.HYBRID: STATE_ECO,
     BradfordWhiteConnectHeatingModes.VACATION: STATE_OFF,
 }
@@ -81,8 +84,12 @@ class BradfordWhiteConnectWaterHeaterEntity(
     def operation_list(self) -> list[str]:
         """Return the list of supported operation modes."""
         ha_modes = []
-        for ha_mode in MODE_BRADFORDWHITE_TO_HA.values():
-            ha_modes.append(ha_mode)
+
+        supported_modes = self.client.get_device_heating_modes(self.device)
+        for mode in supported_modes:
+            ha_mode = MODE_BRADFORDWHITE_TO_HA.get(mode)
+            if ha_mode:
+                ha_modes.append(ha_mode)
 
         return ha_modes
 
