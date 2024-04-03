@@ -81,11 +81,29 @@ class BradfordWhiteConnectWaterHeaterEntity(
         self._device = device
 
     @property
-    async def operation_list(self) -> list[str]:
+    def operation_list(self) -> list[str]:
         """Return the list of supported operation modes."""
         ha_modes = []
 
-        supported_modes = await self.client.get_device_heating_modes(self.device)
+        supported_modes = list(MODE_BRADFORDWHITE_TO_HA.keys())
+
+        # model numbers sourced from:
+        # https://forthepro.bradfordwhite.com/our-products/usa-residential-heat-pump/aerotherm-series-heat-pump/
+        model_numbers_without_hybrid_plus = [
+            "RE2H50S10-1NCWT",
+            "RE2H65T10-1NCWT",
+            "RE2H80T10-1NCWT",
+        ]
+
+        appliance_model = self.device.properties.get(
+            "appliance_model_out"
+        ).value.strip()
+
+        # return the heating modes based on the model number
+        if appliance_model in model_numbers_without_hybrid_plus:
+            supported_modes.remove(BradfordWhiteConnectHeatingModes.HYBRID_PLUS)
+
+        # return the heating modes
         for mode in supported_modes:
             ha_mode = MODE_BRADFORDWHITE_TO_HA.get(mode)
             if ha_mode:
@@ -94,12 +112,12 @@ class BradfordWhiteConnectWaterHeaterEntity(
         return ha_modes
 
     @property
-    async def supported_features(self) -> WaterHeaterEntityFeature:
+    def supported_features(self) -> WaterHeaterEntityFeature:
         """Return the list of supported features."""
         support_flags = WaterHeaterEntityFeature.TARGET_TEMPERATURE
 
         # Operation mode only supported if there is more than one mode
-        if len(await self.operation_list) > 1:
+        if len(self.operation_list) > 1:
             support_flags |= WaterHeaterEntityFeature.OPERATION_MODE
 
         support_flags |= WaterHeaterEntityFeature.AWAY_MODE
