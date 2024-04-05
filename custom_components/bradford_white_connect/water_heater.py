@@ -3,6 +3,7 @@
 from typing import Any
 
 from bradford_white_connect_client.constants import BradfordWhiteConnectHeatingModes
+from bradford_white_connect_client.helper import BradfordWhiteConnectHelper
 from bradford_white_connect_client.types import Device
 from homeassistant.components.water_heater import (
     STATE_ECO,
@@ -83,32 +84,25 @@ class BradfordWhiteConnectWaterHeaterEntity(
     @property
     def operation_list(self) -> list[str]:
         """Return the list of supported operation modes."""
-        ha_modes = []
 
-        supported_modes = list(MODE_BRADFORDWHITE_TO_HA.keys())
-
-        # model numbers sourced from:
-        # https://forthepro.bradfordwhite.com/our-products/usa-residential-heat-pump/aerotherm-series-heat-pump/
-        model_numbers_without_hybrid_plus = [
-            "RE2H50S10-1NCWT",
-            "RE2H65T10-1NCWT",
-            "RE2H80T10-1NCWT",
-        ]
-
+        # Get the appliance model for the device
         appliance_model = self.device.properties.get(
             "appliance_model_out"
         ).value.strip()
 
-        # return the heating modes based on the model number
-        if appliance_model in model_numbers_without_hybrid_plus:
-            supported_modes.remove(BradfordWhiteConnectHeatingModes.HYBRID_PLUS)
+        # Get the heating modes for the appliance model
+        appliance_heating_modes = (
+            BradfordWhiteConnectHelper.get_appliance_model_heating_modes(
+                appliance_model
+            )
+        )
 
-        # return the heating modes
-        for mode in supported_modes:
-            ha_mode = MODE_BRADFORDWHITE_TO_HA.get(mode)
-            if ha_mode:
-                ha_modes.append(ha_mode)
-
+        # Translate the bradford white heating modes to HA modes
+        ha_modes = [
+            MODE_BRADFORDWHITE_TO_HA.get(mode)
+            for mode in appliance_heating_modes
+            if MODE_BRADFORDWHITE_TO_HA.get(mode)
+        ]
         return ha_modes
 
     @property
