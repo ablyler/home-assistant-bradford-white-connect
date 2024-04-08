@@ -116,12 +116,12 @@
         },
         "bradford-white-connect-client": {
             "hashes": [
-                "sha256:87426661c10b7b10e3f031c566b072387193a4bc7c32deffd56f7fd91500a98c",
-                "sha256:989948b983feb648da46edf043d9db0b7e3ea2721ae674ee4a1133fac4c142a6"
+                "sha256:06883877ecf75f7cc13bc5a74bb3357b36d42ac1d2fd6040c302d815497206c9",
+                "sha256:fbf1422b523598cf19e69c69fd0ae86561a7d6eb488d4062c5821a55610f8c49"
             ],
             "index": "pypi",
             "markers": "python_version < '4.0' and python_full_version >= '3.11.0'",
-            "version": "==0.0.12"
+            "version": "==0.0.15"
         },
         "dataclasses-json": {
             "hashes": [
@@ -344,11 +344,11 @@
         },
         "typing-extensions": {
             "hashes": [
-                "sha256:69b1a937c3a517342112fb4c6df7e72fc39a38e7891a5730ed4985b5214b5475",
-                "sha256:b0abd7c89e8fb96f98db18d86106ff1d90ab692004eb746cf6eda2682f91b3cb"
+                "sha256:83f085bd5ca59c80295fc2a82ab5dac679cbe02b9f33f7d83af68e241bea51b0",
+                "sha256:c1f94d72897edaf4ce775bb7558d5b79d8126906a14ea5ed1635921406c0387a"
             ],
             "markers": "python_version >= '3.8'",
-            "version": "==4.10.0"
+            "version": "==4.11.0"
         },
         "typing-inspect": {
             "hashes": [
