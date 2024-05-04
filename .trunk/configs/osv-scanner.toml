@@ -1,3 +1,19 @@
 [[IgnoredVulns]]
 id = "GHSA-wj6h-64fc-37mp"
 reason = "python-ecdsa used only in development, not in production"
+
+[[IgnoredVulns]]
+id = "GHSA-6c5p-j8vq-pqhj"
+reason = "python-jose used only in development, not in production"
+
+[[IgnoredVulns]]
+id = "GHSA-cjwg-qfpm-7377"
+reason = "python-jose used only in development, not in production"
+
+[[IgnoredVulns]]
+id = "GHSA-g7vv-2v7x-gj9p"
+reason = "tqdm used only in development, not in production"
+
+[[IgnoredVulns]]
+id = "GHSA-mr82-8j83-vxmv"
+reason = "Pydantic used only in development, not in production"
