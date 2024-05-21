@@ -15,11 +15,21 @@ Once the integration is installed, you can add it to the Home Assistant by going
 
 [![Add Bradford White Connect][add-integration-badge]][add-integration]
 
+(This is not working use Manual approach until HACS approved config)
+
 ### Manual installation
 
 1. Update Home Assistant to version 2021.12 or newer.
 2. Clone this repository.
 3. Copy the `custom_components/bradford_white_connect` folder into your Home Assistant's `custom_components` folder.
+
+### Manual addition to HACS
+
+1. Go to HACS then add "ablyler/home-assistant-bradford-white-connect" to custom repositories as an integration.
+2. Download for HACS and restart Home Assistant.
+3. You will then see Bradford White Connect in the integrations to add in Devices and Settings.
+4. proceed to the Configuration
+
 
 ### Configuring
 
