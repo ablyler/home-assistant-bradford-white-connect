@@ -30,7 +30,6 @@ Once the integration is installed, you can add it to the Home Assistant by going
 3. You will then see Bradford White Connect in the integrations to add in Devices and Settings.
 4. proceed to the Configuration
 
-
 ### Configuring
 
 1. Add `Bradford White Connect` integration via UI.
