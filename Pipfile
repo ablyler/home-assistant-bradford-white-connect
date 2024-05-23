@@ -5,6 +5,8 @@ name = "pypi"
 
 [packages]
 bradford-white-connect-client = "*"
+requests = "*"
+jinja2 = "*"
 
 [dev-packages]
 pytest = "*"
