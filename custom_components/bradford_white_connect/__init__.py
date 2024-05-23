@@ -15,6 +15,7 @@ from .coordinator import (
     BradfordWhiteConnectEnergyCoordinator,
     BradfordWhiteConnectStatusCoordinator,
 )
+from .helper import get_device_property_value
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.WATER_HEATER]
 
@@ -48,10 +49,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             config_entry_id=entry.entry_id,
             identifiers={(DOMAIN, dsn)},
             manufacturer="Bradford White",
-            name=device.properties["product_name"].value,
-            model=device.properties["appliance_model_out"].value,
-            serial_number=device.properties["appliance_serial_number_out"].value,
-            sw_version=device.properties["controller_sw"].value,
+            name=get_device_property_value(device, "product_name"),
+            model=get_device_property_value(device, "appliance_model_out"),
+            serial_number=get_device_property_value(
+                device, "appliance_serial_number_out"
+            ),
+            sw_version=get_device_property_value(device, "controller_sw"),
         )
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = BradfordWhiteConnectData(
