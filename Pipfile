@@ -7,6 +7,7 @@ name = "pypi"
 bradford-white-connect-client = "*"
 requests = "*"
 jinja2 = "*"
+cryptography = ">=43.0.1"
 
 [dev-packages]
 pytest = "*"
