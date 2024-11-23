@@ -25,7 +25,6 @@ lint:
     - flake8@7.0.0
     - git-diff-check
     - isort@5.13.2
-    - osv-scanner@1.7.0
     - prettier@3.2.5
     - ruff@0.3.5
     - taplo@0.8.1
