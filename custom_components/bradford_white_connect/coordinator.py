@@ -1,5 +1,6 @@
 """The data update coordinator for the Bradford White Connect integration."""
 
+import calendar
 import datetime
 import logging
 
@@ -18,6 +19,8 @@ from .const import (
     DOMAIN,
     ENERGY_TYPE_HEAT_PUMP,
     ENERGY_TYPE_RESISTANCE,
+    ENERGY_USAGE_INTERVAL,
+    FAST_INTERVAL,
     REGULAR_INTERVAL,
 )
 
@@ -31,12 +34,24 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
         """Initialize the coordinator."""
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=REGULAR_INTERVAL)
         self.client = client
+        self.shared_data = {}
 
     async def _async_update_data(self) -> dict[str, Device]:
         """Fetch latest data from the device status endpoint."""
         try:
             devices = await self.client.get_devices()
             for device in devices:
+                # check if the last api set call (datatime) is less than 5 minutes ago
+                # this is stored in the self.shared_data = { "last_api_set_datetime": datetime.datetime.now() }"
+                if self.shared_data.get("last_api_set_datetime") is not None:
+                    if (
+                        datetime.datetime.now()
+                        - self.shared_data.get("last_api_set_datetime")
+                    ) < REGULAR_INTERVAL:
+                        device.update_interval = FAST_INTERVAL
+                    else:
+                        device.update_interval = REGULAR_INTERVAL
+
                 properties = await self.client.get_device_properties(device)
 
                 remapped_properties = {p.property.name: p.property for p in properties}

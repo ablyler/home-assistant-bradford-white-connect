@@ -11,10 +11,13 @@ CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
 
 # Update interval to be used for normal background updates.
-REGULAR_INTERVAL = timedelta(seconds=30)
+REGULAR_INTERVAL = timedelta(minutes=5)
 
 # Update interval to be used while a mode or setpoint change is in progress.
-FAST_INTERVAL = timedelta(seconds=1)
+FAST_INTERVAL = timedelta(seconds=5)
+
+# Update interval to be used for energy usage data.
+ENERGY_USAGE_INTERVAL = timedelta(hours=12)
 
 # energy types
 ENERGY_TYPE_RESISTANCE = "resistance"

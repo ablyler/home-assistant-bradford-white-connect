@@ -173,7 +173,9 @@ class BradfordWhiteConnectWaterHeaterEntity(
         vendor_mode = MODE_HA_TO_BRADFORDWHITE.get(operation_mode)
         if vendor_mode is not None:
             await self.client.set_device_heat_mode(self.device, vendor_mode)
-
+            self.coordinator.shared_data[self.device_id] = {
+                "last_api_set_datetime": self.hass.time.now()
+            }
             await self.coordinator.async_request_refresh()
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
@@ -181,7 +183,9 @@ class BradfordWhiteConnectWaterHeaterEntity(
         temperature = kwargs.get("temperature")
         if temperature is not None:
             await self.client.update_device_set_point(self.device, temperature)
-
+            self.coordinator.shared_data[self.device_id] = {
+                "last_api_set_datetime": self.hass.time.now()
+            }
             await self.coordinator.async_request_refresh()
 
     async def async_turn_away_mode_on(self) -> None:
@@ -189,11 +193,17 @@ class BradfordWhiteConnectWaterHeaterEntity(
         await self.client.set_device_heat_mode(
             self.device, BradfordWhiteConnectHeatingModes.VACATION
         )
-
+        self.coordinator.shared_data[self.device_id] = {
+            "last_api_set_datetime": self.hass.time.now()
+        }
         await self.coordinator.async_request_refresh()
 
     async def async_turn_away_mode_off(self) -> None:
         """Turn away mode off."""
         for mode in DEFAULT_OPERATION_MODE_PRIORITY:
             await self.client.set_device_heat_mode(self.device, mode)
+            self.coordinator.shared_data[self.device_id] = {
+                "last_api_set_datetime": self.hass.time.now()
+            }
+            await self.coordinator.async_request_refresh()
             break
