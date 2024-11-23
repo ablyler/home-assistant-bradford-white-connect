@@ -41,8 +41,7 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
         try:
             devices = await self.client.get_devices()
             for device in devices:
-                # check if the last api set call (datatime) is less than 5 minutes ago
-                # this is stored in the self.shared_data = { "last_api_set_datetime": datetime.datetime.now() }"
+                # check if the last api set call (datatime) is less than REGULAR_INTERVAL
                 if self.shared_data.get("last_api_set_datetime") is not None:
                     if (
                         datetime.datetime.now()
@@ -103,24 +102,33 @@ class BradfordWhiteConnectEnergyCoordinator(DataUpdateCoordinator[dict[str, floa
         client: BradfordWhiteConnectClient,
     ) -> None:
         """Initialize the coordinator."""
-        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=REGULAR_INTERVAL)
+        super().__init__(
+            hass, _LOGGER, name=DOMAIN, update_interval=ENERGY_USAGE_INTERVAL
+        )
         self.client = client
 
     async def _async_update_data(self) -> dict[str, map]:
         """Fetch latest data from the energy usage endpoint."""
         energy_usage_by_dsn: dict[str, map] = {}
 
-        # Get the current year
-        current_year = datetime.datetime.now().year
+        # Get the last day of the current month
+        last_day_of_month = calendar.monthrange(
+            datetime.datetime.now().year, datetime.datetime.now().month
+        )[1]
 
-        # Get the first date of the current year
-        first_date = datetime.datetime(current_year, 1, 1)
+        # Get the first date of the current month
+        first_date = datetime.datetime.now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
 
-        # Get the last date of the current year
-        last_date = datetime.datetime(current_year, 12, 31)
+        # Get the last date of the current month
+        last_date = datetime.datetime.now().replace(
+            day=last_day_of_month, hour=23, minute=59, second=59, microsecond=999999
+        )
 
         try:
             devices = await self.client.get_devices()
+
             for device in devices:
                 heatpump_energty = await self.client.get_yearly_hpe(
                     device, first_date, last_date
