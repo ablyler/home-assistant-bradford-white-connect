@@ -47,9 +47,11 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
                         datetime.datetime.now()
                         - self.shared_data.get("last_api_set_datetime")
                     ) < REGULAR_INTERVAL:
-                        device.update_interval = FAST_INTERVAL
+                        _LOGGER.debug("Setting fast update interval")
+                        self.update_interval = FAST_INTERVAL
                     else:
-                        device.update_interval = REGULAR_INTERVAL
+                        _LOGGER.debug("Setting regular update interval")
+                        self.update_interval = REGULAR_INTERVAL
 
                 properties = await self.client.get_device_properties(device)
 

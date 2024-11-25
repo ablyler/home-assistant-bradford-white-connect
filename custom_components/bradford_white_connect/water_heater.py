@@ -1,5 +1,7 @@
 """The water heater platform for the Bradford White Connect integration."""
 
+from datetime import datetime
+import logging
 from typing import Any
 
 from bradford_white_connect_client.constants import BradfordWhiteConnectHeatingModes
@@ -47,6 +49,8 @@ DEFAULT_OPERATION_MODE_PRIORITY = [
     BradfordWhiteConnectHeatingModes.HYBRID,
     BradfordWhiteConnectHeatingModes.ELECTRIC,
 ]
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -172,38 +176,34 @@ class BradfordWhiteConnectWaterHeaterEntity(
 
         vendor_mode = MODE_HA_TO_BRADFORDWHITE.get(operation_mode)
         if vendor_mode is not None:
+            _LOGGER.info("Setting operation mode to %s", operation_mode)
             await self.client.set_device_heat_mode(self.device, vendor_mode)
-            self.coordinator.shared_data[self.device_id] = {
-                "last_api_set_datetime": self.hass.time.now()
-            }
+            self.coordinator.shared_data["last_api_set_datetime"] = datetime.now()
             await self.coordinator.async_request_refresh()
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""
         temperature = kwargs.get("temperature")
         if temperature is not None:
+            _LOGGER.info("Setting temperature to %s", temperature)
             await self.client.update_device_set_point(self.device, temperature)
-            self.coordinator.shared_data[self.device_id] = {
-                "last_api_set_datetime": self.hass.time.now()
-            }
+            self.coordinator.shared_data["last_api_set_datetime"] = datetime.now()
             await self.coordinator.async_request_refresh()
 
     async def async_turn_away_mode_on(self) -> None:
         """Turn away mode on."""
+        _LOGGER.info("Setting away mode on")
         await self.client.set_device_heat_mode(
             self.device, BradfordWhiteConnectHeatingModes.VACATION
         )
-        self.coordinator.shared_data[self.device_id] = {
-            "last_api_set_datetime": self.hass.time.now()
-        }
+        self.coordinator.shared_data["last_api_set_datetime"] = datetime.now()
         await self.coordinator.async_request_refresh()
 
     async def async_turn_away_mode_off(self) -> None:
         """Turn away mode off."""
         for mode in DEFAULT_OPERATION_MODE_PRIORITY:
+            _LOGGER.info("Setting away mode off, trying mode: %s", mode)
             await self.client.set_device_heat_mode(self.device, mode)
-            self.coordinator.shared_data[self.device_id] = {
-                "last_api_set_datetime": self.hass.time.now()
-            }
+            self.coordinator.shared_data["last_api_set_datetime"] = datetime.now()
             await self.coordinator.async_request_refresh()
             break
