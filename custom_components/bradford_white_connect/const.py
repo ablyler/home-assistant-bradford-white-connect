@@ -17,7 +17,7 @@ REGULAR_INTERVAL = timedelta(minutes=5)
 FAST_INTERVAL = timedelta(seconds=5)
 
 # Update interval to be used for energy usage data.
-ENERGY_USAGE_INTERVAL = timedelta(hours=12)
+ENERGY_USAGE_INTERVAL = timedelta(minutes=30)
 
 # energy types
 ENERGY_TYPE_RESISTANCE = "resistance"

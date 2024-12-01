@@ -1,6 +1,5 @@
 """The data update coordinator for the Bradford White Connect integration."""
 
-import calendar
 import datetime
 import logging
 
@@ -113,34 +112,25 @@ class BradfordWhiteConnectEnergyCoordinator(DataUpdateCoordinator[dict[str, floa
         """Fetch latest data from the energy usage endpoint."""
         energy_usage_by_dsn: dict[str, map] = {}
 
-        # Get the last day of the current month
-        last_day_of_month = calendar.monthrange(
-            datetime.datetime.now().year, datetime.datetime.now().month
-        )[1]
-
-        # Get the first date of the current month
-        first_date = datetime.datetime.now().replace(
-            day=1, hour=0, minute=0, second=0, microsecond=0
-        )
-
-        # Get the last date of the current month
-        last_date = datetime.datetime.now().replace(
-            day=last_day_of_month, hour=23, minute=59, second=59, microsecond=999999
-        )
+        # always get the energy usage the current date with a lag of one hour
+        # this is to ensure we get the usage for the last hour of the day that
+        # can come in after midnight
+        usage_date = datetime.datetime.now() - datetime.timedelta(hours=1)
 
         try:
             devices = await self.client.get_devices()
 
             for device in devices:
-                heatpump_energty = await self.client.get_yearly_hpe(
-                    device, first_date, last_date
+
+                heatpump_energy = await self.client.get_total_energy_usage_for_day(
+                    device, "hp", usage_date
                 )
-                resistance_energy = await self.client.get_yearly_ree(
-                    device, first_date, last_date
+                resistance_energy = await self.client.get_total_energy_usage_for_day(
+                    device, "re", usage_date
                 )
 
                 energy_usage_by_dsn[device.dsn] = {
-                    ENERGY_TYPE_HEAT_PUMP: heatpump_energty,
+                    ENERGY_TYPE_HEAT_PUMP: heatpump_energy,
                     ENERGY_TYPE_RESISTANCE: resistance_energy,
                 }
 
