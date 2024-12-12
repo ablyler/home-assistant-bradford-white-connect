@@ -5,17 +5,14 @@
 
 This custom component for Home Assistant adds support for managing your water heater via the Bradford White Connect platform.
 
-## Installation instruction
+## Installation instructions
 
-### HACS
+### Using HACS
 
-The easiest way to install this integration is with [HACS][hacs]. First, install [HACS][hacs-download] if you don't have it yet. In Home Assistant, go to `HACS -> Integrations`, click on `+ Explore & Download Repositories`, search for `Bradford White Connect`, and click download. After download, restart Home Assistant.
-
-Once the integration is installed, you can add it to the Home Assistant by going to `Configuration -> Devices & Services`, clicking `+ Add Integration` and searching for `Bradford White Connect` or, using My Home Assistant service, you can click on:
-
-[![Add Bradford White Connect][add-integration-badge]][add-integration]
-
-(This is not working use Manual approach until HACS approved config)
+The easiest way to install this integration is with [HACS][hacs]. First, [install HACS][hacs-download] if you don't have it yet.\
+Click on the link below or search for `Bradford White Connect` in HACS.\
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ablyler&repository=home-assistant-bradford-white-connect&category=integration)\
+Click download and after this, restart Home Assistant.
 
 ### Manual installation
 
@@ -23,16 +20,11 @@ Once the integration is installed, you can add it to the Home Assistant by going
 2. Clone this repository.
 3. Copy the `custom_components/bradford_white_connect` folder into your Home Assistant's `custom_components` folder.
 
-### Manual addition to HACS
+## Configuring
 
-1. Go to HACS then add "ablyler/home-assistant-bradford-white-connect" to custom repositories as an integration.
-2. Download for HACS and restart Home Assistant.
-3. You will then see Bradford White Connect in the integrations to add in Devices and Settings.
-4. proceed to the Configuration
-
-### Configuring
-
-1. Add `Bradford White Connect` integration via UI.
+1. Add `Bradford White Connect` integration via UI. Using My Home Assistant service, you can click on:\
+   [![Add Bradford White Connect][add-integration-badge]][add-integration]\
+   Or add it to Home Assistant by going to `Configuration -> Devices & Services`, clicking `+ Add Integration` and searching for `Bradford White Connect`.
 2. Enter Bradford White Connect cloud hostname, account id, username, and password.
 3. The integration will discover appliance on local network(s).
 4. If an appliance is not automatically discovered, but is registered to the cloud account, user is prompted to enter IPv4 address of the appliance.
@@ -86,7 +78,7 @@ Home Assistant needs to be restarted after this change.
 
 Bradford White Connect and other names are trademarks of their respective owners.
 
-[add-integration]: https://my.home-assistant.io/redirect/config_flow_start?domain=bradford_white_connect
+[add-integration]: https://my.home-assistant.io/redirect/config_flow_start/?domain=bradford_white_connect
 [add-integration-badge]: https://my.home-assistant.io/badges/config_flow_start.svg
 [hacs]: https://hacs.xyz
 [hacs-download]: https://hacs.xyz/docs/setup/download
