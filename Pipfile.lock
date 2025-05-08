@@ -129,12 +129,12 @@
         },
         "bradford-white-connect-client": {
             "hashes": [
-                "sha256:8d1da4392200c734d1824dd3724ff47aabb93e5fa90d251f287c6d3fc294d5d6",
-                "sha256:d4076fbc0f6567b30445e3eeda943c66d21a0176ba4434be28ee9ae50ee4c66e"
+                "sha256:0c4e512de555cc668ae8fb3db1f209d1f1f7c1677d99ba3f55534ec60afe9a03",
+                "sha256:7ab0df852750be05a6fc834dcd54c176b802452f8853b8505f3ec036448ae1d0"
             ],
             "index": "pypi",
             "markers": "python_full_version >= '3.11.0' and python_version < '4.0'",
-            "version": "==0.0.20"
+            "version": "==0.0.21"
         },
         "certifi": {
             "hashes": [
