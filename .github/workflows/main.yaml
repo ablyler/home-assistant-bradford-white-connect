@@ -140,7 +140,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
       - name: Update running major/minor version tags
-        uses: sersoft-gmbh/running-release-tags-action@v3
+        uses: sersoft-gmbh/running-release-tags-action@v4
         with:
           fail-on-non-semver-tag: true
           create-release: false
