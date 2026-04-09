@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "custom_components/bradford_white_connect/**"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate release version
+        id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          prefix="$(date -u +'%Y.%m.%d')"
+          latest_same_day_tag="$({ gh release list --limit 100 --json tagName --jq '.[] | .tagName' || true; } | grep -E "^${prefix}\\.[0-9]+$" | sort -V | tail -n1)"
+
+          if [ -n "$latest_same_day_tag" ]; then
+            n="${latest_same_day_tag##*.}"
+            n=$((n + 1))
+          else
+            n=1
+          fi
+
+          version="${prefix}.${n}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Using version: ${version}"
+
+      - name: Update manifest version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest = Path('custom_components/bradford_white_connect/manifest.json')
+          data = json.loads(manifest.read_text())
+          data['version'] = os.environ['VERSION']
+          manifest.write_text(json.dumps(data, indent=2) + '\n')
+          PY
+
+      - name: Create release archive
+        run: |
+          cd custom_components
+          zip -r ../bradford_white_connect.zip bradford_white_connect
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
+          files: bradford_white_connect.zip
