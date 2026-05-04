@@ -52,8 +52,17 @@ class BradfordWhiteConnectStatusEntity(
 
     @property
     def available(self) -> bool:
-        """Return True if entity is available."""
-        return super().available and self.device.connection_status == "Online"
+        """Return True if entity is available.
+
+        Availability is governed by the coordinator's last-update success.
+        The previous strict `device.connection_status == "Online"` check was
+        removed because the cloud API can report `connection_status='Offline'`
+        for devices that are reachable — the BW Connect app shows the unit as
+        online and the coordinator successfully fetches device properties at
+        the regular interval. The field appears to track something other than
+        actual cloud reachability.
+        """
+        return super().available
 
 
 class BradfordWhiteConnectEnergyEntity(
