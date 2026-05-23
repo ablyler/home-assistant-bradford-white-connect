@@ -71,7 +71,9 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
         else:
             payload_value = value
         data = json.dumps({"datapoint": {"value": payload_value}})
-        _LOGGER.debug("POST %s value=%r", url, payload_value)
+        _LOGGER.info(
+            "Writing %s=%r to device %s", name, payload_value, device.dsn
+        )
         await self.client.http_post_request(url, headers=headers, data=data)
         # Shorten the polling interval so the user sees feedback sooner.
         self.shared_data["last_api_set_datetime"] = datetime.datetime.now()

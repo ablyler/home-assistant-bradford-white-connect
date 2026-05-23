@@ -62,7 +62,7 @@ is actually reported by the unit, so the exact set varies by model and firmware.
 | `sensor`        | Appliance type / model              | Diagnostic |
 | `sensor`        | Current heat mode                   | Enum: hybrid / electric / heat_pump / high_demand / vacation |
 | `sensor`        | DRM status                          | Utility load-shedding state |
-| `sensor`        | Active alarms                       | Decoded F-codes (e.g. "F14: Dirty filter"); raw bitmap as `raw_bitmap` attribute |
+| `sensor`        | Active alarms                       | Set bit positions of the alarm bitmap (e.g. "bit 13 (tentative F14)"); raw bitmap + tentative descriptions in attributes — see notes below |
 | `sensor`        | Connection status                   | Cloud-reported status (informational only) |
 | `binary_sensor` | Compressor running                  | Heat pump units only |
 | `binary_sensor` | Evaporator fan running              | Heat pump units only (diagnostic) |
@@ -82,14 +82,18 @@ is actually reported by the unit, so the exact set varies by model and firmware.
 
 ### Notes on the alarm sensor and "clear" buttons
 
-The state of the **Active alarms** sensor is a comma-separated list of
-currently-set F-codes with their English descriptions, decoded from the
-raw 40-character `alarm` bitmap. Known descriptions come from the
-Bradford White AeroTherm RE2H50/RE2H80 service quick-reference guide
-(P/N 31-75036-1, 03-15). Newer personalities may use additional
-bit positions for which descriptions are not yet documented; those
-appear as `Unknown fault (bit N)`. The raw bitmap is preserved on the
-sensor's `raw_bitmap` attribute.
+The state of the **Active alarms** sensor reports the **bit positions**
+set in the raw `alarm` bitmap (e.g. `bit 13 (tentative F14)`). The raw
+bitmap is preserved on the sensor's `raw_bitmap` attribute alongside
+`active_bits`, `tentative_codes`, and `tentative_descriptions`.
+
+The F-code labels and English descriptions are a **best-guess** based on
+the Bradford White AeroTherm RE2H50/RE2H80 service quick-reference guide
+(P/N 31-75036-1, 03-15), which covers personalities up to 86A. Newer
+personalities (such as 63A on the RE2H65T10) appear to extend the fault
+table with codes BW has not published publicly, and the older mapping
+has been observed to disagree with field behavior on those units. Treat
+the description attribute as a hypothesis, not as authoritative.
 
 The **Clear alarm counts** button writes the `clear_alarm_counts`
 Ayla input property. The cloud accepts the write but it only resets the

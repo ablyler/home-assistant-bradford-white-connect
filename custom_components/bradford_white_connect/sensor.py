@@ -40,6 +40,7 @@ from .entity import (
     BradfordWhiteConnectStatusEntity,
 )
 from .fault_codes import (
+    DESCRIPTION_SOURCE,
     HEAT_MODE_OPTIONS,
     decode_alarm_bitmap,
     heat_mode_to_name,
@@ -75,26 +76,36 @@ class BWSensorDescription(SensorEntityDescription):
 
 
 def _decode_active_alarms(device: Device) -> str:
-    """Return a comma-separated F-code list for active alarm bits, or 'OK'.
+    """Return a compact state describing which alarm bits are set.
 
-    The raw 40-char bitmap is exposed as an ``extra_state_attributes``
-    entry so the underlying data is still available without parsing.
+    The bit indices are reported as hard facts; we deliberately do NOT
+    put the tentative F-code descriptions in the state because the
+    older RE2H50/80 mapping has been observed to disagree with newer
+    personalities (e.g. ``63A`` on the RE2H65T10). Descriptions are
+    surfaced as a tentative attribute instead.
     """
     bitmap = get_device_property_value(device, "alarm")
     active = decode_alarm_bitmap(bitmap)
     if not active:
         return "OK"
-    return ", ".join(f"{a['code']}: {a['description']}" for a in active)
+    return ", ".join(
+        f"bit {a['bit']} (tentative {a['tentative_code']})" for a in active
+    )
 
 
 def _alarm_attributes(device: Device) -> dict[str, Any]:
-    """Expose the raw bitmap and decoded fault details as attributes."""
+    """Expose the raw bitmap, bit indices, and tentative descriptions."""
     bitmap = get_device_property_value(device, "alarm")
     active = decode_alarm_bitmap(bitmap)
     return {
         "raw_bitmap": bitmap,
-        "active_codes": [a["code"] for a in active],
-        "active_faults": active,
+        "active_bits": [a["bit"] for a in active],
+        "tentative_codes": [a["tentative_code"] for a in active],
+        "tentative_descriptions": [
+            f"{a['tentative_code']}: {a['tentative_description']}"
+            for a in active
+        ],
+        "description_source": DESCRIPTION_SOURCE,
     }
 
 
