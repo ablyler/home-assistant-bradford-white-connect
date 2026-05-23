@@ -32,13 +32,51 @@ Click download and after this, restart Home Assistant.
 
 ## Supported entities
 
-This custom component creates following entities for each discovered water heater:
+This custom component creates the following entities for each discovered water
+heater. Entities backed by a device property are only created when the property
+is actually reported by the unit, so the exact set varies by model and firmware.
 
-| Platform       | Description                                  |
-| -------------- | -------------------------------------------- |
-| `water_heater` | Controller water heater                      |
-| `sensor`       | Resistance energy usage for the current year |
-| `sensor`       | Heat pump energy usage for the previous year |
+| Platform        | Entity                              | Notes |
+| --------------- | ----------------------------------- | --------------------------------- |
+| `water_heater`  | Controller                          | Current/target temperature, operation mode, away mode |
+| `sensor`        | Heat pump energy usage              | Daily kWh (heat pump) |
+| `sensor`        | Resistance energy usage             | Daily kWh (resistance element) |
+| `sensor`        | Daily / total energy                | When reported by the unit |
+| `sensor`        | Tank temperature (upper, lower)     | Lower only on dual-sensor units |
+| `sensor`        | Ambient temperature                 | Air around the appliance |
+| `sensor`        | Evaporator inlet / outlet temp      | Heat pump units only (diagnostic) |
+| `sensor`        | Compressor discharge temp           | Heat pump units only (diagnostic) |
+| `sensor`        | Evaporator superheat                | Heat pump units only (diagnostic) |
+| `sensor`        | Water setpoint (current / min / max) | Diagnostic |
+| `sensor`        | Heat pump / resistance power        | Live kW |
+| `sensor`        | Mains voltage / current             | Diagnostic |
+| `sensor`        | Heat pump / upper / lower element current | Diagnostic |
+| `sensor`        | Wi-Fi signal strength               | Diagnostic |
+| `sensor`        | Air filter dirtiness                | Diagnostic |
+| `sensor`        | Appliance runtime / compressor runtime | Total hours, diagnostic |
+| `sensor`        | Mode time remaining                 | Minutes, diagnostic |
+| `sensor`        | EEV position                        | Heat pump units only (diagnostic) |
+| `sensor`        | Hot water availability              | Percent of stored hot water |
+| `sensor`        | Stored / maximum thermal capacity   | Capacity readings |
+| `sensor`        | Tank size                           | Diagnostic |
+| `sensor`        | Appliance type / model              | Diagnostic |
+| `sensor`        | Current heat mode                   | Raw mode code (diagnostic) |
+| `sensor`        | DRM status                          | Utility load-shedding state |
+| `sensor`        | Alarm codes                         | Raw alarm bitmap (diagnostic) |
+| `sensor`        | Connection status                   | Cloud-reported status (informational only) |
+| `binary_sensor` | Compressor running                  | Heat pump units only |
+| `binary_sensor` | Evaporator fan running              | Heat pump units only (diagnostic) |
+| `binary_sensor` | Upper / lower element running       | Electric resistance elements |
+| `binary_sensor` | Global error                        | Diagnostic problem indicator |
+| `binary_sensor` | Water overheat                      | Diagnostic problem indicator |
+
+### Diagnostics
+
+A redacted snapshot of the cloud API data — including every device property
+the API returns — is available via **Settings → Devices & Services →
+Bradford White Connect → Download diagnostics**. PII such as the DSN, MAC,
+LAN IP, geographic coordinates, and serial number are redacted before the
+file is written.
 
 ## Troubleshooting
 
