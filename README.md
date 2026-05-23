@@ -98,12 +98,47 @@ the description attribute as a hypothesis, not as authoritative.
 The **Clear alarm counts** button writes the `clear_alarm_counts`
 Ayla input property. The cloud accepts the write but it only resets the
 controller's stored fault counters (the `alarm_count` string). The
-**Global error** and **Water overheat** binary sensors are read-only
-device outputs — the cloud cannot directly clear them. If those flags
-remain latched after a fault has been resolved, they typically require
-either Service Mode at the unit's keypad (UP+Enter for 5s, cycle to
-Faults, hold Enter for 5s) or, for an actual TCO trip, a physical reset
-of the red TCO button inside the upper access panel.
+**Global error** and **Water overheat** binary sensors and the `alarm`
+bitmap are all read-only device output properties — the cloud has no
+write permission for them, so no button or automation in Home Assistant
+can clear them remotely. They reflect device state, not stored
+settings.
+
+### How to clear a latched fault at the unit
+
+If `Active alarms`, `Global error`, or `Water overheat` remains
+asserted after the underlying problem is resolved, the latch has to be
+cleared at the heater itself:
+
+1. **Verify there is no live fault first.** Look at the front-panel
+   LEDs. If a fault is actively shown (not just latched in history),
+   resolve the underlying cause before clearing.
+2. **Enter Service Mode.** On the front panel, press and hold the
+   **UP arrow + Enter** buttons simultaneously for ~5 seconds. You'll
+   hear a single beep when the buttons register, then a two-tone
+   acknowledgement.
+3. **Navigate to "View Faults and Counters."** Press **Mode** to cycle
+   through the five Service Mode functions until the **Hybrid** LED is
+   lit (that's the Faults function). The display shows the active fault
+   code or `- - -` if none.
+4. **Clear the fault history.** Press and hold **Enter** for ~5 seconds
+   and listen for the beep. This clears all stored fault codes and
+   counters on the controller.
+5. **Exit Service Mode.** Press and hold the **UP + Down arrows**
+   simultaneously for ~5 seconds (two beeps), or just wait 15 minutes
+   for the timeout.
+6. **For an actual TCO (over-temperature) trip**, the red TCO reset
+   button behind the upper access panel must also be physically pressed
+   before the latch will clear. The TCO opens at ~180°F and cuts power
+   to its element until reset.
+
+After the latch clears at the unit, the cloud-side output properties
+will follow within one or two Bradford White Connect refresh cycles
+and the HA sensors will update on the next coordinator update.
+
+Source: Bradford White AeroTherm RE2H50/RE2H80 service quick-reference
+guide (P/N 31-75036-1, 03-15). The procedure is the same on the newer
+RE2H65T10 / personality 63A.
 
 ### Diagnostics
 
