@@ -17,7 +17,15 @@ from .coordinator import (
 )
 from .helper import get_device_property_value
 
-PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR, Platform.WATER_HEATER]
+PLATFORMS: list[Platform] = [
+    Platform.BINARY_SENSOR,
+    Platform.BUTTON,
+    Platform.NUMBER,
+    Platform.SENSOR,
+    Platform.SWITCH,
+    Platform.TEXT,
+    Platform.WATER_HEATER,
+]
 
 
 @dataclass

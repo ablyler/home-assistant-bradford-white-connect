@@ -118,13 +118,20 @@
         "name": "Appliance model"
       },
       "alarm": {
-        "name": "Alarm codes"
+        "name": "Active alarms"
       },
       "drm_status": {
         "name": "DRM status"
       },
       "current_heat_mode": {
-        "name": "Current heat mode"
+        "name": "Current heat mode",
+        "state": {
+          "hybrid": "Hybrid",
+          "electric": "Electric",
+          "heat_pump": "Heat pump",
+          "high_demand": "High demand",
+          "vacation": "Vacation"
+        }
       },
       "connection_status": {
         "name": "Connection status"
@@ -148,6 +155,47 @@
       },
       "water_overheat": {
         "name": "Water overheat"
+      }
+    },
+    "button": {
+      "clear_alarm_counts": {
+        "name": "Clear alarm counts"
+      },
+      "reset_filter": {
+        "name": "Reset filter alarm"
+      },
+      "controller_reboot": {
+        "name": "Reboot controller"
+      },
+      "wifi_reboot": {
+        "name": "Reboot Wi-Fi"
+      }
+    },
+    "number": {
+      "set_vacation_mode_days": {
+        "name": "Vacation mode days"
+      },
+      "set_electric_mode_days": {
+        "name": "Electric mode days"
+      },
+      "set_heat_timer_1": {
+        "name": "Standard heat timer"
+      },
+      "set_heat_timer_4": {
+        "name": "Vacation heat timer"
+      }
+    },
+    "switch": {
+      "drm_advanced_loadup": {
+        "name": "DRM advanced load-up"
+      },
+      "drm_service": {
+        "name": "DRM service"
+      }
+    },
+    "text": {
+      "heater_name": {
+        "name": "Heater name"
       }
     }
   }

@@ -60,15 +60,46 @@ is actually reported by the unit, so the exact set varies by model and firmware.
 | `sensor`        | Stored / maximum thermal capacity   | Capacity readings |
 | `sensor`        | Tank size                           | Diagnostic |
 | `sensor`        | Appliance type / model              | Diagnostic |
-| `sensor`        | Current heat mode                   | Raw mode code (diagnostic) |
+| `sensor`        | Current heat mode                   | Enum: hybrid / electric / heat_pump / high_demand / vacation |
 | `sensor`        | DRM status                          | Utility load-shedding state |
-| `sensor`        | Alarm codes                         | Raw alarm bitmap (diagnostic) |
+| `sensor`        | Active alarms                       | Decoded F-codes (e.g. "F14: Dirty filter"); raw bitmap as `raw_bitmap` attribute |
 | `sensor`        | Connection status                   | Cloud-reported status (informational only) |
 | `binary_sensor` | Compressor running                  | Heat pump units only |
 | `binary_sensor` | Evaporator fan running              | Heat pump units only (diagnostic) |
 | `binary_sensor` | Upper / lower element running       | Electric resistance elements |
 | `binary_sensor` | Global error                        | Diagnostic problem indicator |
 | `binary_sensor` | Water overheat                      | Diagnostic problem indicator |
+| `button`        | Clear alarm counts                  | Writes `clear_alarm_counts=1` to reset stored F-code counts |
+| `button`        | Reset filter alarm                  | Writes `reset_filter=1` to clear the dirty-filter alarm |
+| `button`        | Reboot controller                   | Writes `controller_reboot=1` |
+| `button`        | Reboot Wi-Fi                        | Writes `wifi_reboot=1` |
+| `number`        | Vacation mode days                  | 1-199 days, writes `set_vacation_mode_days` |
+| `number`        | Electric mode days                  | 1-99 days, writes `set_electric_mode_days` |
+| `number`        | Standard / vacation heat timer      | -1..365 days, writes `set_heat_timer_1` / `set_heat_timer_4` |
+| `switch`        | DRM advanced load-up                | Opt-in to utility advanced load-up behavior |
+| `switch`        | DRM service                         | Toggle DRM service acknowledgement |
+| `text`          | Heater name                         | Friendly name shown in the BW Connect app |
+
+### Notes on the alarm sensor and "clear" buttons
+
+The state of the **Active alarms** sensor is a comma-separated list of
+currently-set F-codes with their English descriptions, decoded from the
+raw 40-character `alarm` bitmap. Known descriptions come from the
+Bradford White AeroTherm RE2H50/RE2H80 service quick-reference guide
+(P/N 31-75036-1, 03-15). Newer personalities may use additional
+bit positions for which descriptions are not yet documented; those
+appear as `Unknown fault (bit N)`. The raw bitmap is preserved on the
+sensor's `raw_bitmap` attribute.
+
+The **Clear alarm counts** button writes the `clear_alarm_counts`
+Ayla input property. The cloud accepts the write but it only resets the
+controller's stored fault counters (the `alarm_count` string). The
+**Global error** and **Water overheat** binary sensors are read-only
+device outputs — the cloud cannot directly clear them. If those flags
+remain latched after a fault has been resolved, they typically require
+either Service Mode at the unit's keypad (UP+Enter for 5s, cycle to
+Faults, hold Enter for 5s) or, for an actual TCO trip, a physical reset
+of the red TCO button inside the upper access panel.
 
 ### Diagnostics
 

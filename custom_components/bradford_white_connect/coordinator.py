@@ -1,7 +1,9 @@
 """The data update coordinator for the Bradford White Connect integration."""
 
 import datetime
+import json
 import logging
+from typing import Any
 
 from bradford_white_connect_client import (
     BradfordWhiteConnectAuthenticationError,
@@ -25,6 +27,12 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Ayla datapoint write endpoint (same shape the upstream client uses for
+# the two specialised setters - we just parametrise the property name).
+_DATAPOINT_URL = (
+    "https://ads-field.aylanetworks.com/apiv1/dsns/{dsn}/properties/{name}/datapoints.json"
+)
+
 
 class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Device]]):
     """Coordinator for device status, updating with a frequent interval."""
@@ -34,6 +42,40 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=REGULAR_INTERVAL)
         self.client = client
         self.shared_data = {}
+
+    async def async_set_property(
+        self, device: Device, name: str, value: Any
+    ) -> None:
+        """Write a single property's datapoint to the Ayla cloud.
+
+        The upstream ``bradford_white_connect_client`` only exposes
+        ``set_device_heat_mode`` and ``update_device_set_point``; this
+        helper performs the same POST for any property by name, which
+        lets us drive ``clear_alarm_counts``, ``reset_filter``,
+        ``set_vacation_mode_days`` etc. via the same Mobile-app codepath.
+
+        Booleans are submitted as ``1`` / ``0``; everything else is
+        passed through unchanged. The Ayla API echoes the stored value
+        back; we don't optimistically mutate ``device.properties`` because
+        the next coordinator refresh will reconcile state with the device.
+        """
+        headers = self.client.generate_headers(
+            {
+                "content-type": "application/json",
+                "x-ayla-source": "Mobile",
+            }
+        )
+        url = _DATAPOINT_URL.format(dsn=device.dsn, name=name)
+        if isinstance(value, bool):
+            payload_value: Any = 1 if value else 0
+        else:
+            payload_value = value
+        data = json.dumps({"datapoint": {"value": payload_value}})
+        _LOGGER.debug("POST %s value=%r", url, payload_value)
+        await self.client.http_post_request(url, headers=headers, data=data)
+        # Shorten the polling interval so the user sees feedback sooner.
+        self.shared_data["last_api_set_datetime"] = datetime.datetime.now()
+        await self.async_request_refresh()
 
     async def _async_update_data(self) -> dict[str, Device]:
         """Fetch latest data from the device status endpoint."""

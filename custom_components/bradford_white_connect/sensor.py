@@ -39,6 +39,11 @@ from .entity import (
     BradfordWhiteConnectEnergyEntity,
     BradfordWhiteConnectStatusEntity,
 )
+from .fault_codes import (
+    HEAT_MODE_OPTIONS,
+    decode_alarm_bitmap,
+    heat_mode_to_name,
+)
 from .helper import get_device_property_value
 
 
@@ -59,10 +64,38 @@ class BWSensorDescription(SensorEntityDescription):
     Follows the aosmith / vicare HA core pattern:
     - ``value_fn`` extracts the value from a Device on each update
     - ``supported_fn`` decides whether the sensor is created for a device
+    - ``extra_state_attributes_fn`` (optional) returns a dict to expose
+      as the entity's ``extra_state_attributes`` (used by the alarm
+      sensor to attach the raw bitmap and decoded fault list)
     """
 
     value_fn: Callable[[Device], Any]
     supported_fn: Callable[[Device], bool] = lambda device: True
+    extra_state_attributes_fn: Callable[[Device], dict[str, Any]] | None = None
+
+
+def _decode_active_alarms(device: Device) -> str:
+    """Return a comma-separated F-code list for active alarm bits, or 'OK'.
+
+    The raw 40-char bitmap is exposed as an ``extra_state_attributes``
+    entry so the underlying data is still available without parsing.
+    """
+    bitmap = get_device_property_value(device, "alarm")
+    active = decode_alarm_bitmap(bitmap)
+    if not active:
+        return "OK"
+    return ", ".join(f"{a['code']}: {a['description']}" for a in active)
+
+
+def _alarm_attributes(device: Device) -> dict[str, Any]:
+    """Expose the raw bitmap and decoded fault details as attributes."""
+    bitmap = get_device_property_value(device, "alarm")
+    active = decode_alarm_bitmap(bitmap)
+    return {
+        "raw_bitmap": bitmap,
+        "active_codes": [a["code"] for a in active],
+        "active_faults": active,
+    }
 
 
 PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
@@ -399,7 +432,8 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         key="alarm",
         translation_key="alarm",
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda device: get_device_property_value(device, "alarm"),
+        value_fn=_decode_active_alarms,
+        extra_state_attributes_fn=_alarm_attributes,
         supported_fn=_has_property("alarm"),
     ),
     BWSensorDescription(
@@ -412,8 +446,12 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
     BWSensorDescription(
         key="current_heat_mode",
         translation_key="current_heat_mode",
+        device_class=SensorDeviceClass.ENUM,
+        options=HEAT_MODE_OPTIONS,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda device: get_device_property_value(device, "current_heat_mode"),
+        value_fn=lambda device: heat_mode_to_name(
+            get_device_property_value(device, "current_heat_mode")
+        ),
         supported_fn=_has_property("current_heat_mode"),
     ),
     BWSensorDescription(
@@ -507,5 +545,16 @@ class BradfordWhiteConnectPropertySensor(
         """Return the current value extracted via the description's value_fn."""
         try:
             return self.entity_description.value_fn(self.device)
+        except (AttributeError, KeyError, TypeError, ValueError):
+            return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return optional extra attributes (e.g. raw bitmap on the alarm sensor)."""
+        attrs_fn = self.entity_description.extra_state_attributes_fn
+        if attrs_fn is None:
+            return None
+        try:
+            return attrs_fn(self.device)
         except (AttributeError, KeyError, TypeError, ValueError):
             return None
