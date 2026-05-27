@@ -81,8 +81,6 @@ is actually reported by the unit, so the exact set varies by model and firmware.
 | `binary_sensor` | Upper / lower element running       | Electric resistance elements |
 | `binary_sensor` | Global error                        | Diagnostic problem indicator |
 | `binary_sensor` | Water overheat                      | Diagnostic problem indicator |
-| `button`        | Clear alarm counts                  | Writes `clear_alarm_counts=1` to reset stored F-code counts |
-| `button`        | Reset filter alarm                  | Writes `reset_filter=1` to clear the dirty-filter alarm |
 | `button`        | Reboot controller                   | Writes `controller_reboot=1` |
 | `button`        | Reboot Wi-Fi                        | Writes `wifi_reboot=1` |
 | `number`        | Vacation mode days                  | 1-199 days, writes `set_vacation_mode_days` |
@@ -92,7 +90,7 @@ is actually reported by the unit, so the exact set varies by model and firmware.
 | `switch`        | DRM service                         | Toggle DRM service acknowledgement |
 | `text`          | Heater name                         | Friendly name shown in the BW Connect app |
 
-### Notes on the alarm sensor and "clear" buttons
+### Notes on the alarm sensor and why there's no remote clear button
 
 The state of the **Active alarms** sensor reports the **bit positions**
 set in the raw `alarm` bitmap (e.g. `bit 13 (tentative F14)`). The raw
@@ -107,14 +105,16 @@ table with codes BW has not published publicly, and the older mapping
 has been observed to disagree with field behavior on those units. Treat
 the description attribute as a hypothesis, not as authoritative.
 
-The **Clear alarm counts** button writes the `clear_alarm_counts`
-Ayla input property. The cloud accepts the write but it only resets the
-controller's stored fault counters (the `alarm_count` string). The
-**Global error** and **Water overheat** binary sensors and the `alarm`
-bitmap are all read-only device output properties — the cloud has no
-write permission for them, so no button or automation in Home Assistant
-can clear them remotely. They reflect device state, not stored
-settings.
+Bradford White's cloud API has no write permission for the latched
+`alarm` bitmap, `global_error`, or `water_overheat_notify` outputs:
+the `clear_alarm_counts` write only resets the controller's stored
+`alarm_count` string (it does not clear the latch), and field testing
+on personality 63A also shows that `reset_filter` is a no-op for the
+latched alarm bit on that unit. Because exposing those writes as
+buttons made the cloud limitation look like an integration bug, the
+**Clear alarm counts** and **Reset filter alarm** buttons were removed
+in 0.5.0. Use the keypad Service Mode procedure below to clear latched
+faults at the unit.
 
 ### How to clear a latched fault at the unit
 
