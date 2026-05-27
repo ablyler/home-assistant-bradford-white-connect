@@ -1,19 +1,42 @@
-def get_device_property_value(device, property_name):
+"""Shared helpers for the Bradford White Connect integration.
+
+These small utilities are used across every platform file. Keeping them
+here (rather than duplicating per-platform) makes it easier to evolve
+how we read from / introspect ``Device.properties`` in one place.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
+
+from bradford_white_connect_client.types import Device
+
+
+def get_device_property_value(device: Device, property_name: str) -> Any:
+    """Return ``device.properties[property_name].value`` if present, else ``None``.
+
+    Guarded against:
+    - the property key being absent from ``device.properties``
+    - the property object existing but not exposing a ``.value`` attribute
+    - ``device.properties`` itself being ``None`` (some devices report it that way
+      before the first refresh)
     """
-    Get the value of a property for a given device.
+    properties = getattr(device, "properties", None) or {}
+    prop = properties.get(property_name)
+    if prop is None:
+        return None
+    return getattr(prop, "value", None)
 
-    Args:
-        device (Device): The device object.
-        property_name (str): The name of the property.
 
-    Returns:
-        The value of the property if it exists and has a value attribute, otherwise None.
+def has_property(name: str) -> Callable[[Device], bool]:
+    """Build a ``supported_fn(device) -> bool`` that checks a property's presence.
+
+    Returns ``False`` (rather than raising) when ``device.properties`` is
+    ``None`` so platform setup can call it unconditionally.
     """
-    # Ensure the property exists
-    if property_name in device.properties:
-        # Return the value attribute of the property if it is present
-        if hasattr(device.properties[property_name], "value"):
-            return device.properties[property_name].value
 
-    # Return None if the property does not exist or does not have a value attribute
-    return None
+    def _check(device: Device) -> bool:
+        return name in (getattr(device, "properties", None) or {})
+
+    return _check

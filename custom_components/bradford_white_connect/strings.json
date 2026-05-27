@@ -158,12 +158,6 @@
       }
     },
     "button": {
-      "clear_alarm_counts": {
-        "name": "Clear alarm counts"
-      },
-      "reset_filter": {
-        "name": "Reset filter alarm"
-      },
       "controller_reboot": {
         "name": "Reboot controller"
       },

@@ -18,14 +18,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import BradfordWhiteConnectData
 from .const import DOMAIN
-from .coordinator import BradfordWhiteConnectStatusCoordinator
-from .entity import BradfordWhiteConnectStatusEntity
-from .helper import get_device_property_value
-
-
-def _has_property(name: str) -> Callable[[Device], bool]:
-    """Build a supported_fn that checks for a property's presence on the device."""
-    return lambda device: name in (device.properties or {})
+from .entity import BradfordWhiteConnectDescribedStatusEntity
+from .helper import get_device_property_value, has_property
 
 
 def _is_truthy(device: Device, property_name: str) -> bool | None:
@@ -53,7 +47,7 @@ PROPERTY_BINARY_SENSORS: tuple[BWBinarySensorDescription, ...] = (
         translation_key="compressor_running",
         device_class=BinarySensorDeviceClass.RUNNING,
         value_fn=lambda device: _is_truthy(device, "comp_status"),
-        supported_fn=_has_property("comp_status"),
+        supported_fn=has_property("comp_status"),
     ),
     BWBinarySensorDescription(
         key="evap_fan_running",
@@ -61,21 +55,21 @@ PROPERTY_BINARY_SENSORS: tuple[BWBinarySensorDescription, ...] = (
         device_class=BinarySensorDeviceClass.RUNNING,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda device: _is_truthy(device, "evap_fan_status"),
-        supported_fn=_has_property("evap_fan_status"),
+        supported_fn=has_property("evap_fan_status"),
     ),
     BWBinarySensorDescription(
         key="upper_element_running",
         translation_key="upper_element_running",
         device_class=BinarySensorDeviceClass.RUNNING,
         value_fn=lambda device: _is_truthy(device, "upper_status"),
-        supported_fn=_has_property("upper_status"),
+        supported_fn=has_property("upper_status"),
     ),
     BWBinarySensorDescription(
         key="lower_element_running",
         translation_key="lower_element_running",
         device_class=BinarySensorDeviceClass.RUNNING,
         value_fn=lambda device: _is_truthy(device, "lower_status"),
-        supported_fn=_has_property("lower_status"),
+        supported_fn=has_property("lower_status"),
     ),
     BWBinarySensorDescription(
         key="global_error",
@@ -83,7 +77,7 @@ PROPERTY_BINARY_SENSORS: tuple[BWBinarySensorDescription, ...] = (
         device_class=BinarySensorDeviceClass.PROBLEM,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda device: _is_truthy(device, "global_error"),
-        supported_fn=_has_property("global_error"),
+        supported_fn=has_property("global_error"),
     ),
     BWBinarySensorDescription(
         key="water_overheat",
@@ -91,7 +85,7 @@ PROPERTY_BINARY_SENSORS: tuple[BWBinarySensorDescription, ...] = (
         device_class=BinarySensorDeviceClass.PROBLEM,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda device: _is_truthy(device, "water_overheat_notify"),
-        supported_fn=_has_property("water_overheat_notify"),
+        supported_fn=has_property("water_overheat_notify"),
     ),
 )
 
@@ -115,23 +109,11 @@ async def async_setup_entry(
 
 
 class BradfordWhiteConnectPropertyBinarySensor(
-    BradfordWhiteConnectStatusEntity, BinarySensorEntity
+    BradfordWhiteConnectDescribedStatusEntity, BinarySensorEntity
 ):
     """Binary sensor derived from a device property."""
 
     entity_description: BWBinarySensorDescription
-
-    def __init__(
-        self,
-        coordinator: BradfordWhiteConnectStatusCoordinator,
-        dsn: str,
-        device: Device,
-        description: BWBinarySensorDescription,
-    ) -> None:
-        """Initialize the entity."""
-        super().__init__(coordinator, dsn, device)
-        self.entity_description = description
-        self._attr_unique_id = f"{dsn}_{description.key}"
 
     @property
     def is_on(self) -> bool | None:

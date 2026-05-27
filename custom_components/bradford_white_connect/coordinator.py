@@ -1,5 +1,7 @@
 """The data update coordinator for the Bradford White Connect integration."""
 
+from __future__ import annotations
+
 import datetime
 import json
 import logging
@@ -33,6 +35,18 @@ _DATAPOINT_URL = (
     "https://ads-field.aylanetworks.com/apiv1/dsns/{dsn}/properties/{name}/datapoints.json"
 )
 
+# Properties that must be present and within a sane range for the device to
+# be considered usable on a given coordinator refresh. A device that fails
+# this check is *skipped* for that update, not propagated as a hard error,
+# so a multi-heater account doesn't lose every entity because one heater
+# misbehaves.
+_REQUIRED_TEMP_PROPERTIES: tuple[str, ...] = (
+    "tank_temp",
+    "water_setpoint_out",
+    "water_setpoint_min",
+    "water_setpoint_max",
+)
+
 
 class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Device]]):
     """Coordinator for device status, updating with a frequent interval."""
@@ -41,7 +55,7 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
         """Initialize the coordinator."""
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=REGULAR_INTERVAL)
         self.client = client
-        self.shared_data = {}
+        self.shared_data: dict[str, Any] = {}
 
     async def async_set_property(
         self, device: Device, name: str, value: Any
@@ -51,13 +65,29 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
         The upstream ``bradford_white_connect_client`` only exposes
         ``set_device_heat_mode`` and ``update_device_set_point``; this
         helper performs the same POST for any property by name, which
-        lets us drive ``clear_alarm_counts``, ``reset_filter``,
-        ``set_vacation_mode_days`` etc. via the same Mobile-app codepath.
+        lets us drive things like ``set_vacation_mode_days``,
+        ``controller_reboot``, and ``heater_name`` via the same
+        Mobile-app codepath.
 
         Booleans are submitted as ``1`` / ``0``; everything else is
-        passed through unchanged. The Ayla API echoes the stored value
-        back; we don't optimistically mutate ``device.properties`` because
-        the next coordinator refresh will reconcile state with the device.
+        passed through unchanged. We deliberately do **not** optimistically
+        mutate ``device.properties[name].value`` after a successful write,
+        because the Ayla cloud is the source of truth: the next coordinator
+        refresh (shortened to ``FAST_INTERVAL`` for the next ~5 minutes
+        via ``last_api_set_datetime``) will reconcile state.
+        """
+        await self._post_datapoint(device, name, value)
+        self.shared_data["last_api_set_datetime"] = datetime.datetime.now(
+            datetime.timezone.utc
+        )
+        await self.async_request_refresh()
+
+    async def _post_datapoint(self, device: Device, name: str, value: Any) -> None:
+        """POST a single datapoint to the Ayla cloud via the upstream client.
+
+        Going through ``self.client.http_post_request`` (rather than calling
+        ``aiohttp`` directly) inherits the upstream client's retry-on-401
+        re-authentication behaviour.
         """
         headers = self.client.generate_headers(
             {
@@ -66,79 +96,94 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
             }
         )
         url = _DATAPOINT_URL.format(dsn=device.dsn, name=name)
-        if isinstance(value, bool):
-            payload_value: Any = 1 if value else 0
-        else:
-            payload_value = value
+        payload_value: Any = (1 if value else 0) if isinstance(value, bool) else value
         data = json.dumps({"datapoint": {"value": payload_value}})
-        _LOGGER.info(
-            "Writing %s=%r to device %s", name, payload_value, device.dsn
-        )
+        _LOGGER.info("Writing %s=%r to device %s", name, payload_value, device.dsn)
         await self.client.http_post_request(url, headers=headers, data=data)
-        # Shorten the polling interval so the user sees feedback sooner.
-        self.shared_data["last_api_set_datetime"] = datetime.datetime.now()
-        await self.async_request_refresh()
+
+    def _refresh_update_interval(self) -> None:
+        """Shorten the polling interval after a recent write, otherwise relax it."""
+        last_set = self.shared_data.get("last_api_set_datetime")
+        if last_set is None:
+            self.update_interval = REGULAR_INTERVAL
+            return
+        if (
+            datetime.datetime.now(datetime.timezone.utc) - last_set
+        ) < REGULAR_INTERVAL:
+            _LOGGER.debug("Setting fast update interval")
+            self.update_interval = FAST_INTERVAL
+        else:
+            _LOGGER.debug("Setting regular update interval")
+            self.update_interval = REGULAR_INTERVAL
+
+    @staticmethod
+    def _device_is_valid(device: Device) -> bool:
+        """Return True if the device's required telemetry looks sane.
+
+        Logs and rejects devices that are missing one of the required temp
+        properties or whose ``current_heat_mode`` is not in the published
+        enum. Logging happens at WARNING level so transient cloud weirdness
+        is visible without enabling debug logs.
+        """
+        for temp_property in _REQUIRED_TEMP_PROPERTIES:
+            device_property = device.properties.get(temp_property)
+            if device_property is None:
+                _LOGGER.warning(
+                    "Device %s missing required property %s; skipping this update",
+                    device.dsn,
+                    temp_property,
+                )
+                return False
+            value = device_property.value
+            if value is None or value < 0 or value > 200:
+                _LOGGER.warning(
+                    "Device %s property %s out of range: %r; skipping this update",
+                    device.dsn,
+                    temp_property,
+                    value,
+                )
+                return False
+
+        heat_mode = device.properties.get("current_heat_mode")
+        if heat_mode is None:
+            _LOGGER.warning(
+                "Device %s missing required property current_heat_mode; "
+                "skipping this update",
+                device.dsn,
+            )
+            return False
+        if not BradfordWhiteConnectHeatingModes.is_valid(heat_mode.value):
+            _LOGGER.warning(
+                "Device %s reported unknown current_heat_mode %r; skipping this update",
+                device.dsn,
+                heat_mode.value,
+            )
+            return False
+
+        return True
 
     async def _async_update_data(self) -> dict[str, Device]:
         """Fetch latest data from the device status endpoint."""
+        self._refresh_update_interval()
         try:
             devices = await self.client.get_devices()
+            valid_devices: dict[str, Device] = {}
             for device in devices:
-                # check if the last api set call (datatime) is less than REGULAR_INTERVAL
-                if self.shared_data.get("last_api_set_datetime") is not None:
-                    if (
-                        datetime.datetime.now()
-                        - self.shared_data.get("last_api_set_datetime")
-                    ) < REGULAR_INTERVAL:
-                        _LOGGER.debug("Setting fast update interval")
-                        self.update_interval = FAST_INTERVAL
-                    else:
-                        _LOGGER.debug("Setting regular update interval")
-                        self.update_interval = REGULAR_INTERVAL
-
                 properties = await self.client.get_device_properties(device)
-
-                remapped_properties = {p.property.name: p.property for p in properties}
-                device.properties = remapped_properties
-
-                temp_properties = [
-                    "tank_temp",
-                    "water_setpoint_out",
-                    "water_setpoint_min",
-                    "water_setpoint_max",
-                ]
-
-                for temp_property in temp_properties:
-                    """Validate the temp property is valid"""
-                    device_property = device.properties.get(temp_property)
-                    if device_property is None:
-                        raise UpdateFailed(
-                            f"Device property {temp_property} is missing"
-                        )
-
-                    if device_property.value < 0 or device_property.value > 200:
-                        raise UpdateFailed(
-                            f"Device property {temp_property} is invalid: {device_property.value}"
-                        )
-
-                """Validate the current heat mode is valid"""
-                device_property = device.properties.get("current_heat_mode")
-                if device_property is None:
-                    raise UpdateFailed("Device property 'current_heat_mode' is missing")
-
-                if not BradfordWhiteConnectHeatingModes.is_valid(device_property.value):
-                    raise UpdateFailed(
-                        f"Device property 'current_heat_mode' is invalid: {device_property.value}"
-                    )
-
-            return {device.dsn: device for device in devices}
+                device.properties = {p.property.name: p.property for p in properties}
+                if not self._device_is_valid(device):
+                    continue
+                valid_devices[device.dsn] = device
+            return valid_devices
         except BradfordWhiteConnectAuthenticationError as err:
             raise ConfigEntryAuthFailed from err
         except BradfordWhiteConnectUnknownException as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
 
-class BradfordWhiteConnectEnergyCoordinator(DataUpdateCoordinator[dict[str, float]]):
+class BradfordWhiteConnectEnergyCoordinator(
+    DataUpdateCoordinator[dict[str, dict[str, float]]]
+):
     """Coordinator for energy usage data, updating with a slower interval."""
 
     def __init__(
@@ -152,9 +197,9 @@ class BradfordWhiteConnectEnergyCoordinator(DataUpdateCoordinator[dict[str, floa
         )
         self.client = client
 
-    async def _async_update_data(self) -> dict[str, map]:
+    async def _async_update_data(self) -> dict[str, dict[str, float]]:
         """Fetch latest data from the energy usage endpoint."""
-        energy_usage_by_dsn: dict[str, map] = {}
+        energy_usage_by_dsn: dict[str, dict[str, float]] = {}
 
         # always get the energy usage the current date with a lag of one hour
         # this is to ensure we get the usage for the last hour of the day that
@@ -165,7 +210,6 @@ class BradfordWhiteConnectEnergyCoordinator(DataUpdateCoordinator[dict[str, floa
             devices = await self.client.get_devices()
 
             for device in devices:
-
                 heatpump_energy = await self.client.get_total_energy_usage_for_day(
                     device, "hp", usage_date
                 )

@@ -21,9 +21,15 @@ mapping. The decoder therefore:
 
 The convention used for the tentative F-code labels is
 **position 0 = F1**, **position 1 = F2**, ..., **position N = F(N+1)**.
+
+This module also owns the small ``decode_alarm_bitmap_state`` /
+``decode_alarm_bitmap_attributes`` adapters that the sensor platform
+uses, so the bitmap-rendering logic lives next to the bitmap itself.
 """
 
 from __future__ import annotations
+
+from typing import Any
 
 from bradford_white_connect_client.constants import (
     BradfordWhiteConnectHeatingModes,
@@ -107,3 +113,35 @@ def heat_mode_to_name(value: int | None) -> str | None:
     if value is None:
         return None
     return HEAT_MODE_NAMES.get(int(value))
+
+
+def decode_alarm_bitmap_state(bitmap: str | None) -> str:
+    """Return a compact state describing which alarm bits are set.
+
+    The bit indices are reported as hard facts; we deliberately do NOT
+    put the tentative F-code descriptions in the state because the
+    older RE2H50/80 mapping has been observed to disagree with newer
+    personalities (e.g. ``63A`` on the RE2H65T10). Descriptions are
+    surfaced as a tentative attribute instead via
+    ``decode_alarm_bitmap_attributes``.
+    """
+    active = decode_alarm_bitmap(bitmap)
+    if not active:
+        return "OK"
+    return ", ".join(
+        f"bit {a['bit']} (tentative {a['tentative_code']})" for a in active
+    )
+
+
+def decode_alarm_bitmap_attributes(bitmap: str | None) -> dict[str, Any]:
+    """Expose the raw bitmap, bit indices, and tentative descriptions."""
+    active = decode_alarm_bitmap(bitmap)
+    return {
+        "raw_bitmap": bitmap,
+        "active_bits": [a["bit"] for a in active],
+        "tentative_codes": [a["tentative_code"] for a in active],
+        "tentative_descriptions": [
+            f"{a['tentative_code']}: {a['tentative_description']}" for a in active
+        ],
+        "description_source": DESCRIPTION_SOURCE,
+    }

@@ -29,14 +29,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import BradfordWhiteConnectData
 from .const import DOMAIN
-from .coordinator import BradfordWhiteConnectStatusCoordinator
-from .entity import BradfordWhiteConnectStatusEntity
-from .helper import get_device_property_value
-
-
-def _has_property(name: str) -> Callable[[Device], bool]:
-    """Build a supported_fn that checks for a property's presence on the device."""
-    return lambda device: name in (device.properties or {})
+from .entity import BradfordWhiteConnectDescribedStatusEntity
+from .helper import get_device_property_value, has_property
 
 
 def _is_truthy(value: Any) -> bool:
@@ -64,14 +58,14 @@ SWITCHES: tuple[BWSwitchDescription, ...] = (
         translation_key="drm_advanced_loadup",
         entity_category=EntityCategory.CONFIG,
         property_name="drm_advanced_loadup",
-        supported_fn=_has_property("drm_advanced_loadup"),
+        supported_fn=has_property("drm_advanced_loadup"),
     ),
     BWSwitchDescription(
         key="drm_service",
         translation_key="drm_service",
         entity_category=EntityCategory.CONFIG,
         property_name="drm_service",
-        supported_fn=_has_property("drm_service"),
+        supported_fn=has_property("drm_service"),
     ),
 )
 
@@ -91,22 +85,12 @@ async def async_setup_entry(
     )
 
 
-class BradfordWhiteConnectSwitch(BradfordWhiteConnectStatusEntity, SwitchEntity):
+class BradfordWhiteConnectSwitch(
+    BradfordWhiteConnectDescribedStatusEntity, SwitchEntity
+):
     """Switch backed by an Ayla boolean input property."""
 
     entity_description: BWSwitchDescription
-
-    def __init__(
-        self,
-        coordinator: BradfordWhiteConnectStatusCoordinator,
-        dsn: str,
-        device: Device,
-        description: BWSwitchDescription,
-    ) -> None:
-        """Initialize the entity."""
-        super().__init__(coordinator, dsn, device)
-        self.entity_description = description
-        self._attr_unique_id = f"{dsn}_{description.key}"
 
     @property
     def is_on(self) -> bool | None:

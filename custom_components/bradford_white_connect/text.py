@@ -18,14 +18,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import BradfordWhiteConnectData
 from .const import DOMAIN
-from .coordinator import BradfordWhiteConnectStatusCoordinator
-from .entity import BradfordWhiteConnectStatusEntity
-from .helper import get_device_property_value
-
-
-def _has_property(name: str) -> Callable[[Device], bool]:
-    """Build a supported_fn that checks for a property's presence on the device."""
-    return lambda device: name in (device.properties or {})
+from .entity import BradfordWhiteConnectDescribedStatusEntity
+from .helper import get_device_property_value, has_property
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -43,7 +37,7 @@ TEXTS: tuple[BWTextDescription, ...] = (
         entity_category=EntityCategory.CONFIG,
         native_max=64,
         property_name="heater_name",
-        supported_fn=_has_property("heater_name"),
+        supported_fn=has_property("heater_name"),
     ),
 )
 
@@ -63,22 +57,12 @@ async def async_setup_entry(
     )
 
 
-class BradfordWhiteConnectText(BradfordWhiteConnectStatusEntity, TextEntity):
+class BradfordWhiteConnectText(
+    BradfordWhiteConnectDescribedStatusEntity, TextEntity
+):
     """Writable text input backed by an Ayla string property."""
 
     entity_description: BWTextDescription
-
-    def __init__(
-        self,
-        coordinator: BradfordWhiteConnectStatusCoordinator,
-        dsn: str,
-        device: Device,
-        description: BWTextDescription,
-    ) -> None:
-        """Initialize the entity."""
-        super().__init__(coordinator, dsn, device)
-        self.entity_description = description
-        self._attr_unique_id = f"{dsn}_{description.key}"
 
     @property
     def native_value(self) -> str | None:

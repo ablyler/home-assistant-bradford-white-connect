@@ -5,6 +5,18 @@
 
 This custom component for Home Assistant adds support for managing your water heater via the Bradford White Connect platform.
 
+## Breaking changes in 0.5.0
+
+The following button entities were removed because the Bradford White
+cloud API has no write permission for the latched alarm/filter outputs
+they pretended to clear (see the alarm-sensor notes below for details).
+If you upgrade from 0.4.x they are automatically deleted from the entity
+registry; any automations that called them will need to be updated to
+use the keypad Service Mode procedure instead:
+
+- `button.bradford_white_*_clear_alarm_counts`
+- `button.bradford_white_*_reset_filter`
+
 ## Installation instructions
 
 ### Using HACS

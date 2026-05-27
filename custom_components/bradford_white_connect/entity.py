@@ -1,10 +1,13 @@
 """The base entity for the Bradford White Connect integration."""
 
+from __future__ import annotations
+
 from typing import TypeVar
 
 from bradford_white_connect_client import BradfordWhiteConnectClient
 from bradford_white_connect_client.types import Device
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -56,6 +59,32 @@ class BradfordWhiteConnectStatusEntity(
     def device(self) -> Device:
         """Shortcut to get the device from the coordinator data."""
         return self.coordinator.data[self._dsn]
+
+
+class BradfordWhiteConnectDescribedStatusEntity(BradfordWhiteConnectStatusEntity):
+    """Status-coordinator entity driven by an ``EntityDescription``.
+
+    Every per-platform property entity (button/binary_sensor/number/sensor/
+    switch/text) follows the same shape: take a description, set it on the
+    entity, and derive ``unique_id`` from ``{dsn}_{description.key}``. This
+    mixin folds that boilerplate into one place.
+
+    Concrete platform subclasses just declare the ``entity_description``
+    type annotation for their description subclass; they no longer need
+    to override ``__init__``.
+    """
+
+    def __init__(
+        self,
+        coordinator: BradfordWhiteConnectStatusCoordinator,
+        dsn: str,
+        device: Device,
+        description: EntityDescription,
+    ) -> None:
+        """Initialize the entity from a shared description."""
+        super().__init__(coordinator, dsn, device)
+        self.entity_description = description
+        self._attr_unique_id = f"{dsn}_{description.key}"
 
 
 class BradfordWhiteConnectEnergyEntity(

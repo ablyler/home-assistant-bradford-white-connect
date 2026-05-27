@@ -31,26 +31,18 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import BradfordWhiteConnectData
 from .const import DOMAIN, ENERGY_TYPE_HEAT_PUMP, ENERGY_TYPE_RESISTANCE
-from .coordinator import (
-    BradfordWhiteConnectEnergyCoordinator,
-    BradfordWhiteConnectStatusCoordinator,
-)
+from .coordinator import BradfordWhiteConnectEnergyCoordinator
 from .entity import (
+    BradfordWhiteConnectDescribedStatusEntity,
     BradfordWhiteConnectEnergyEntity,
-    BradfordWhiteConnectStatusEntity,
 )
 from .fault_codes import (
-    DESCRIPTION_SOURCE,
     HEAT_MODE_OPTIONS,
-    decode_alarm_bitmap,
+    decode_alarm_bitmap_attributes,
+    decode_alarm_bitmap_state,
     heat_mode_to_name,
 )
-from .helper import get_device_property_value
-
-
-def _has_property(name: str) -> Callable[[Device], bool]:
-    """Build a supported_fn that checks for a property's presence on the device."""
-    return lambda device: name in (device.properties or {})
+from .helper import get_device_property_value, has_property
 
 
 def _stripped(value: Any) -> Any:
@@ -75,40 +67,6 @@ class BWSensorDescription(SensorEntityDescription):
     extra_state_attributes_fn: Callable[[Device], dict[str, Any]] | None = None
 
 
-def _decode_active_alarms(device: Device) -> str:
-    """Return a compact state describing which alarm bits are set.
-
-    The bit indices are reported as hard facts; we deliberately do NOT
-    put the tentative F-code descriptions in the state because the
-    older RE2H50/80 mapping has been observed to disagree with newer
-    personalities (e.g. ``63A`` on the RE2H65T10). Descriptions are
-    surfaced as a tentative attribute instead.
-    """
-    bitmap = get_device_property_value(device, "alarm")
-    active = decode_alarm_bitmap(bitmap)
-    if not active:
-        return "OK"
-    return ", ".join(
-        f"bit {a['bit']} (tentative {a['tentative_code']})" for a in active
-    )
-
-
-def _alarm_attributes(device: Device) -> dict[str, Any]:
-    """Expose the raw bitmap, bit indices, and tentative descriptions."""
-    bitmap = get_device_property_value(device, "alarm")
-    active = decode_alarm_bitmap(bitmap)
-    return {
-        "raw_bitmap": bitmap,
-        "active_bits": [a["bit"] for a in active],
-        "tentative_codes": [a["tentative_code"] for a in active],
-        "tentative_descriptions": [
-            f"{a['tentative_code']}: {a['tentative_description']}"
-            for a in active
-        ],
-        "description_source": DESCRIPTION_SOURCE,
-    }
-
-
 PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
     # ----- TEMPERATURE -----
     BWSensorDescription(
@@ -119,7 +77,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
         value_fn=lambda device: get_device_property_value(device, "tank_temp"),
-        supported_fn=_has_property("tank_temp"),
+        supported_fn=has_property("tank_temp"),
     ),
     BWSensorDescription(
         key="tank_temp_lower",
@@ -129,7 +87,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
         value_fn=lambda device: get_device_property_value(device, "tank_temp_lower"),
-        supported_fn=_has_property("tank_temp_lower"),
+        supported_fn=has_property("tank_temp_lower"),
     ),
     BWSensorDescription(
         key="ambient_temp",
@@ -141,7 +99,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         value_fn=lambda device: get_device_property_value(
             device, "appliance_ambient_out"
         ),
-        supported_fn=_has_property("appliance_ambient_out"),
+        supported_fn=has_property("appliance_ambient_out"),
     ),
     BWSensorDescription(
         key="evap_inlet_temp",
@@ -152,7 +110,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=1,
         value_fn=lambda device: get_device_property_value(device, "evap_inlet_temp"),
-        supported_fn=_has_property("evap_inlet_temp"),
+        supported_fn=has_property("evap_inlet_temp"),
     ),
     BWSensorDescription(
         key="evap_outlet_temp",
@@ -163,7 +121,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=1,
         value_fn=lambda device: get_device_property_value(device, "evap_outlet_temp"),
-        supported_fn=_has_property("evap_outlet_temp"),
+        supported_fn=has_property("evap_outlet_temp"),
     ),
     BWSensorDescription(
         key="comp_discharge_temp",
@@ -176,7 +134,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         value_fn=lambda device: get_device_property_value(
             device, "comp_discharge_temp"
         ),
-        supported_fn=_has_property("comp_discharge_temp"),
+        supported_fn=has_property("comp_discharge_temp"),
     ),
     BWSensorDescription(
         key="evap_superheat",
@@ -187,7 +145,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=2,
         value_fn=lambda device: get_device_property_value(device, "superheat_evap"),
-        supported_fn=_has_property("superheat_evap"),
+        supported_fn=has_property("superheat_evap"),
     ),
     # ----- SETPOINTS -----
     BWSensorDescription(
@@ -199,7 +157,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=0,
         value_fn=lambda device: get_device_property_value(device, "water_setpoint_out"),
-        supported_fn=_has_property("water_setpoint_out"),
+        supported_fn=has_property("water_setpoint_out"),
     ),
     BWSensorDescription(
         key="water_setpoint_min",
@@ -209,7 +167,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=0,
         value_fn=lambda device: get_device_property_value(device, "water_setpoint_min"),
-        supported_fn=_has_property("water_setpoint_min"),
+        supported_fn=has_property("water_setpoint_min"),
     ),
     BWSensorDescription(
         key="water_setpoint_max",
@@ -219,7 +177,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=0,
         value_fn=lambda device: get_device_property_value(device, "water_setpoint_max"),
-        supported_fn=_has_property("water_setpoint_max"),
+        supported_fn=has_property("water_setpoint_max"),
     ),
     # ----- POWER -----
     BWSensorDescription(
@@ -230,7 +188,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
         value_fn=lambda device: get_device_property_value(device, "hp_power"),
-        supported_fn=_has_property("hp_power"),
+        supported_fn=has_property("hp_power"),
     ),
     BWSensorDescription(
         key="re_power",
@@ -240,7 +198,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
         value_fn=lambda device: get_device_property_value(device, "re_power"),
-        supported_fn=_has_property("re_power"),
+        supported_fn=has_property("re_power"),
     ),
     # ----- ELECTRICAL (diagnostic) -----
     BWSensorDescription(
@@ -252,7 +210,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=0,
         value_fn=lambda device: get_device_property_value(device, "mains_voltage"),
-        supported_fn=_has_property("mains_voltage"),
+        supported_fn=has_property("mains_voltage"),
     ),
     BWSensorDescription(
         key="mains_current",
@@ -263,7 +221,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=2,
         value_fn=lambda device: get_device_property_value(device, "mains_current"),
-        supported_fn=_has_property("mains_current"),
+        supported_fn=has_property("mains_current"),
     ),
     BWSensorDescription(
         key="hp_current",
@@ -274,7 +232,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=2,
         value_fn=lambda device: get_device_property_value(device, "hp_current"),
-        supported_fn=_has_property("hp_current"),
+        supported_fn=has_property("hp_current"),
     ),
     BWSensorDescription(
         key="upper_element_current",
@@ -285,7 +243,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=2,
         value_fn=lambda device: get_device_property_value(device, "ue_current"),
-        supported_fn=_has_property("ue_current"),
+        supported_fn=has_property("ue_current"),
     ),
     BWSensorDescription(
         key="lower_element_current",
@@ -296,7 +254,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=2,
         value_fn=lambda device: get_device_property_value(device, "le_current"),
-        supported_fn=_has_property("le_current"),
+        supported_fn=has_property("le_current"),
     ),
     # ----- DIAGNOSTIC TELEMETRY -----
     BWSensorDescription(
@@ -309,7 +267,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         value_fn=lambda device: get_device_property_value(
             device, "wifi_signal_strength"
         ),
-        supported_fn=_has_property("wifi_signal_strength"),
+        supported_fn=has_property("wifi_signal_strength"),
     ),
     BWSensorDescription(
         key="filter_percentage",
@@ -318,7 +276,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda device: get_device_property_value(device, "filter_percentage"),
-        supported_fn=_has_property("filter_percentage"),
+        supported_fn=has_property("filter_percentage"),
     ),
     BWSensorDescription(
         key="appliance_hours",
@@ -328,7 +286,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda device: get_device_property_value(device, "appliance_hours"),
-        supported_fn=_has_property("appliance_hours"),
+        supported_fn=has_property("appliance_hours"),
     ),
     BWSensorDescription(
         key="comp_hours",
@@ -338,7 +296,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda device: get_device_property_value(device, "comp_hours"),
-        supported_fn=_has_property("comp_hours"),
+        supported_fn=has_property("comp_hours"),
     ),
     BWSensorDescription(
         key="mode_time_remaining",
@@ -350,7 +308,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         value_fn=lambda device: get_device_property_value(
             device, "mode_time_remaining"
         ),
-        supported_fn=_has_property("mode_time_remaining"),
+        supported_fn=has_property("mode_time_remaining"),
     ),
     BWSensorDescription(
         key="eev_position",
@@ -358,7 +316,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda device: get_device_property_value(device, "eev_pos"),
-        supported_fn=_has_property("eev_pos"),
+        supported_fn=has_property("eev_pos"),
     ),
     # ----- HOT WATER CAPACITY -----
     BWSensorDescription(
@@ -371,7 +329,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         value_fn=lambda device: get_device_property_value(
             device, "available_thermal_capacity"
         ),
-        supported_fn=_has_property("available_thermal_capacity"),
+        supported_fn=has_property("available_thermal_capacity"),
     ),
     BWSensorDescription(
         key="stored_thermal_capacity",
@@ -380,7 +338,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         value_fn=lambda device: get_device_property_value(
             device, "stored_thermal_capacity"
         ),
-        supported_fn=_has_property("stored_thermal_capacity"),
+        supported_fn=has_property("stored_thermal_capacity"),
     ),
     BWSensorDescription(
         key="max_thermal_capacity",
@@ -389,7 +347,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         value_fn=lambda device: get_device_property_value(
             device, "max_thermal_capacity"
         ),
-        supported_fn=_has_property("max_thermal_capacity"),
+        supported_fn=has_property("max_thermal_capacity"),
     ),
     # ----- ENERGY -----
     BWSensorDescription(
@@ -400,7 +358,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=2,
         value_fn=lambda device: get_device_property_value(device, "daily_total_energy"),
-        supported_fn=_has_property("daily_total_energy"),
+        supported_fn=has_property("daily_total_energy"),
     ),
     BWSensorDescription(
         key="total_energy",
@@ -410,7 +368,7 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=2,
         value_fn=lambda device: get_device_property_value(device, "total_energy"),
-        supported_fn=_has_property("total_energy"),
+        supported_fn=has_property("total_energy"),
     ),
     # ----- TANK / APPLIANCE INFO -----
     BWSensorDescription(
@@ -420,14 +378,14 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         native_unit_of_measurement=UnitOfVolume.GALLONS,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda device: get_device_property_value(device, "tank_size_out"),
-        supported_fn=_has_property("tank_size_out"),
+        supported_fn=has_property("tank_size_out"),
     ),
     BWSensorDescription(
         key="appliance_type",
         translation_key="appliance_type",
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda device: get_device_property_value(device, "type_out"),
-        supported_fn=_has_property("type_out"),
+        supported_fn=has_property("type_out"),
     ),
     BWSensorDescription(
         key="appliance_model",
@@ -436,23 +394,27 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         value_fn=lambda device: _stripped(
             get_device_property_value(device, "appliance_model_out")
         ),
-        supported_fn=_has_property("appliance_model_out"),
+        supported_fn=has_property("appliance_model_out"),
     ),
     # ----- DIAGNOSTIC TEXT / STATUS -----
     BWSensorDescription(
         key="alarm",
         translation_key="alarm",
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=_decode_active_alarms,
-        extra_state_attributes_fn=_alarm_attributes,
-        supported_fn=_has_property("alarm"),
+        value_fn=lambda device: decode_alarm_bitmap_state(
+            get_device_property_value(device, "alarm")
+        ),
+        extra_state_attributes_fn=lambda device: decode_alarm_bitmap_attributes(
+            get_device_property_value(device, "alarm")
+        ),
+        supported_fn=has_property("alarm"),
     ),
     BWSensorDescription(
         key="drm_status",
         translation_key="drm_status",
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda device: get_device_property_value(device, "drm_status"),
-        supported_fn=_has_property("drm_status"),
+        supported_fn=has_property("drm_status"),
     ),
     BWSensorDescription(
         key="current_heat_mode",
@@ -463,14 +425,15 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         value_fn=lambda device: heat_mode_to_name(
             get_device_property_value(device, "current_heat_mode")
         ),
-        supported_fn=_has_property("current_heat_mode"),
+        supported_fn=has_property("current_heat_mode"),
     ),
     BWSensorDescription(
         key="connection_status",
         translation_key="connection_status",
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda device: getattr(device, "connection_status", None),
-        # The Device object always has this attr; create unconditionally.
+        supported_fn=lambda device: getattr(device, "connection_status", None)
+        is not None,
     ),
 )
 
@@ -533,23 +496,11 @@ class BradfordWhiteConnectEnergySensorEntity(
 
 
 class BradfordWhiteConnectPropertySensor(
-    BradfordWhiteConnectStatusEntity, SensorEntity
+    BradfordWhiteConnectDescribedStatusEntity, SensorEntity
 ):
     """Sensor backed by a device property exposed through the status coordinator."""
 
     entity_description: BWSensorDescription
-
-    def __init__(
-        self,
-        coordinator: BradfordWhiteConnectStatusCoordinator,
-        dsn: str,
-        device: Device,
-        description: BWSensorDescription,
-    ) -> None:
-        """Initialize the entity."""
-        super().__init__(coordinator, dsn, device)
-        self.entity_description = description
-        self._attr_unique_id = f"{dsn}_{description.key}"
 
     @property
     def native_value(self) -> Any:
