@@ -12,5 +12,5 @@
   "requirements": [
     "bradford-white-connect-client==0.0.21"
   ],
-  "version": "0.5.1"
+  "version": "0.5.2"
 }
