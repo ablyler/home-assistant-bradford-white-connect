@@ -35,10 +35,11 @@ _DATAPOINT_URL = (
     "https://ads-field.aylanetworks.com/apiv1/dsns/{dsn}/properties/{name}/datapoints.json"
 )
 
-# Properties worth warning about when the cloud returns obviously bad data.
-# These checks are diagnostic only. We still keep the device in coordinator
-# data so HA entities remain available and can surface whatever values the
-# cloud did return.
+# Properties that must be present and within a sane range for the device to
+# be considered usable on a given coordinator refresh. A device that fails
+# this check is *skipped* for that update, not propagated as a hard error,
+# so a multi-heater account doesn't lose every entity because one heater
+# misbehaves.
 _REQUIRED_TEMP_PROPERTIES: tuple[str, ...] = (
     "tank_temp",
     "water_setpoint_out",
@@ -116,41 +117,50 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
             self.update_interval = REGULAR_INTERVAL
 
     @staticmethod
-    def _log_device_warnings(device: Device) -> None:
-        """Log suspicious telemetry without dropping the device from HA."""
+    def _device_is_valid(device: Device) -> bool:
+        """Return True if the device's required telemetry looks sane.
+
+        Logs and rejects devices that are missing one of the required temp
+        properties or whose ``current_heat_mode`` is not in the published
+        enum. Logging happens at WARNING level so transient cloud weirdness
+        is visible without enabling debug logs.
+        """
         for temp_property in _REQUIRED_TEMP_PROPERTIES:
             device_property = device.properties.get(temp_property)
             if device_property is None:
                 _LOGGER.warning(
-                    "Device %s missing expected property %s",
+                    "Device %s missing required property %s; skipping this update",
                     device.dsn,
                     temp_property,
                 )
-                continue
+                return False
             value = device_property.value
             if value is None or value < 0 or value > 200:
                 _LOGGER.warning(
-                    "Device %s property %s out of range: %r",
+                    "Device %s property %s out of range: %r; skipping this update",
                     device.dsn,
                     temp_property,
                     value,
                 )
+                return False
 
         heat_mode = device.properties.get("current_heat_mode")
         if heat_mode is None:
             _LOGGER.warning(
-                "Device %s missing expected property current_heat_mode",
+                "Device %s missing required property current_heat_mode; "
+                "skipping this update",
                 device.dsn,
             )
-            return
-        if heat_mode.value is not None and not BradfordWhiteConnectHeatingModes.is_valid(
-            heat_mode.value
-        ):
+            return False
+        if not BradfordWhiteConnectHeatingModes.is_valid(heat_mode.value):
             _LOGGER.warning(
-                "Device %s reported unknown current_heat_mode %r",
+                "Device %s reported unknown current_heat_mode %r; skipping this update",
                 device.dsn,
                 heat_mode.value,
             )
+            return False
+
+        return True
 
     async def _async_update_data(self) -> dict[str, Device]:
         """Fetch latest data from the device status endpoint."""
@@ -161,7 +171,8 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
             for device in devices:
                 properties = await self.client.get_device_properties(device)
                 device.properties = {p.property.name: p.property for p in properties}
-                self._log_device_warnings(device)
+                if not self._device_is_valid(device):
+                    continue
                 valid_devices[device.dsn] = device
             return valid_devices
         except BradfordWhiteConnectAuthenticationError as err:

@@ -41,12 +41,6 @@ MODE_BRADFORDWHITE_TO_HA = {
     BradfordWhiteConnectHeatingModes.HYBRID: STATE_ECO,
     BradfordWhiteConnectHeatingModes.VACATION: STATE_OFF,
 }
-DEFAULT_OPERATION_LIST = [
-    STATE_ELECTRIC,
-    STATE_HEAT_PUMP,
-    STATE_OFF,
-    STATE_ECO,
-]
 
 # Priority list for operation mode to use when exiting away mode
 # Will use the first mode that is supported by the device
@@ -112,7 +106,7 @@ class BradfordWhiteConnectWaterHeaterEntity(
             for mode in self._supported_vendor_modes()
             if MODE_BRADFORDWHITE_TO_HA.get(mode)
         ]
-        return ha_modes or DEFAULT_OPERATION_LIST
+        return ha_modes or [STATE_OFF]
 
     @property
     def supported_features(self) -> WaterHeaterEntityFeature:
@@ -224,12 +218,6 @@ class BradfordWhiteConnectWaterHeaterEntity(
             for mode in self._supported_vendor_modes()
             if mode != BradfordWhiteConnectHeatingModes.VACATION
         ]
-        if not supported_modes:
-            supported_modes = [
-                MODE_HA_TO_BRADFORDWHITE[mode]
-                for mode in DEFAULT_OPERATION_LIST
-                if mode != STATE_OFF
-            ]
 
         target_mode: int | None = next(
             (mode for mode in DEFAULT_OPERATION_MODE_PRIORITY if mode in supported_modes),
