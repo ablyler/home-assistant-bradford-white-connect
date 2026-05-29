@@ -1,6 +1,6 @@
 {
   "domain": "bradford_white_connect",
-  "name": "Bradford White Connect (NET fork)",
+  "name": "Bradford White Connect",
   "codeowners": ["@ablyler"],
   "config_flow": true,
   "dependencies": [],
