@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import datetime
 import json
 import logging
 from typing import Any
 
+import aiohttp
 from bradford_white_connect_client import (
     BradfordWhiteConnectAuthenticationError,
     BradfordWhiteConnectClient,
@@ -25,6 +27,7 @@ from .const import (
     ENERGY_USAGE_INTERVAL,
     FAST_INTERVAL,
     REGULAR_INTERVAL,
+    REQUEST_TIMEOUT,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -99,7 +102,8 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
         payload_value: Any = (1 if value else 0) if isinstance(value, bool) else value
         data = json.dumps({"datapoint": {"value": payload_value}})
         _LOGGER.info("Writing %s=%r to device %s", name, payload_value, device.dsn)
-        await self.client.http_post_request(url, headers=headers, data=data)
+        async with asyncio.timeout(REQUEST_TIMEOUT.total_seconds()):
+            await self.client.http_post_request(url, headers=headers, data=data)
 
     def _refresh_update_interval(self) -> None:
         """Shorten the polling interval after a recent write, otherwise relax it."""
@@ -166,18 +170,25 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
         """Fetch latest data from the device status endpoint."""
         self._refresh_update_interval()
         try:
-            devices = await self.client.get_devices()
-            valid_devices: dict[str, Device] = {}
-            for device in devices:
-                properties = await self.client.get_device_properties(device)
-                device.properties = {p.property.name: p.property for p in properties}
-                if not self._device_is_valid(device):
-                    continue
-                valid_devices[device.dsn] = device
-            return valid_devices
+            async with asyncio.timeout(REQUEST_TIMEOUT.total_seconds()):
+                devices = await self.client.get_devices()
+                valid_devices: dict[str, Device] = {}
+                for device in devices:
+                    properties = await self.client.get_device_properties(device)
+                    device.properties = {
+                        p.property.name: p.property for p in properties
+                    }
+                    if not self._device_is_valid(device):
+                        continue
+                    valid_devices[device.dsn] = device
+                return valid_devices
         except BradfordWhiteConnectAuthenticationError as err:
             raise ConfigEntryAuthFailed from err
-        except BradfordWhiteConnectUnknownException as err:
+        except (
+            BradfordWhiteConnectUnknownException,
+            aiohttp.ClientError,
+            TimeoutError,
+        ) as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
 
@@ -207,24 +218,31 @@ class BradfordWhiteConnectEnergyCoordinator(
         usage_date = datetime.datetime.now() - datetime.timedelta(hours=1)
 
         try:
-            devices = await self.client.get_devices()
+            async with asyncio.timeout(REQUEST_TIMEOUT.total_seconds()):
+                devices = await self.client.get_devices()
 
-            for device in devices:
-                heatpump_energy = await self.client.get_total_energy_usage_for_day(
-                    device, "hp", usage_date
-                )
-                resistance_energy = await self.client.get_total_energy_usage_for_day(
-                    device, "re", usage_date
-                )
+                for device in devices:
+                    heatpump_energy = await self.client.get_total_energy_usage_for_day(
+                        device, "hp", usage_date
+                    )
+                    resistance_energy = (
+                        await self.client.get_total_energy_usage_for_day(
+                            device, "re", usage_date
+                        )
+                    )
 
-                energy_usage_by_dsn[device.dsn] = {
-                    ENERGY_TYPE_HEAT_PUMP: heatpump_energy,
-                    ENERGY_TYPE_RESISTANCE: resistance_energy,
-                }
+                    energy_usage_by_dsn[device.dsn] = {
+                        ENERGY_TYPE_HEAT_PUMP: heatpump_energy,
+                        ENERGY_TYPE_RESISTANCE: resistance_energy,
+                    }
 
         except BradfordWhiteConnectAuthenticationError as err:
             raise ConfigEntryAuthFailed from err
-        except BradfordWhiteConnectUnknownException as err:
+        except (
+            BradfordWhiteConnectUnknownException,
+            aiohttp.ClientError,
+            TimeoutError,
+        ) as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
         return energy_usage_by_dsn

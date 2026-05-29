@@ -5,6 +5,20 @@
 
 This custom component for Home Assistant adds support for managing your water heater via the Bradford White Connect platform.
 
+## Changes in 0.5.2
+
+Fixed a fault where the integration could silently stop updating: the
+upstream `bradford-white-connect-client` issues its cloud HTTP calls
+without a timeout, so a stalled connection (e.g. a silently dropped
+keep-alive socket) could wedge a coordinator refresh forever, hold the
+coordinator lock, and permanently stop every entity from updating with
+no error logged — the only symptom was stale data until Home Assistant
+(or the config entry) was reloaded. Both the status and energy
+coordinators now bound each refresh with a 60-second timeout and treat
+`aiohttp.ClientError` / `TimeoutError` as a recoverable `UpdateFailed`,
+so a hung request fails fast and the next interval retries instead of
+freezing.
+
 ## Breaking changes in 0.5.0
 
 The following button entities were removed because the Bradford White
