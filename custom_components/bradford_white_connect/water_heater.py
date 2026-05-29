@@ -147,26 +147,30 @@ class BradfordWhiteConnectWaterHeaterEntity(
 
     @property
     def current_operation(self) -> str:
-        """Return the current operation mode."""
+        """Return the mode the appliance is actually operating in.
+
+        Uses ``current_heat_mode`` — the firmware's live operating mode,
+        which is what the unit's own front panel displays (verified: panel
+        "Hybrid" ⇔ ``current_heat_mode == HYBRID``). This is distinct from
+        ``user_heat_mode`` (the last *requested* mode), which is surfaced
+        separately as the "Requested heat mode" diagnostic sensor.
+
+        Note ``current_heat_mode`` is device-pushed telemetry: if the
+        appliance loses connectivity it stops updating, so a stale value
+        means the unit is offline, not that the mode is wrong.
+        """
         current_heat_mode = self.device.properties.get("current_heat_mode")
-        if current_heat_mode:
-            return MODE_BRADFORDWHITE_TO_HA.get(
-                self.device.properties["current_heat_mode"].value, STATE_OFF
-            )
-        else:
+        if current_heat_mode is None or current_heat_mode.value is None:
             return STATE_OFF
+        return MODE_BRADFORDWHITE_TO_HA.get(current_heat_mode.value, STATE_OFF)
 
     @property
     def is_away_mode_on(self):
-        """Return True if away mode is on."""
+        """Return True if the appliance is actually operating in vacation."""
         current_heat_mode = self.device.properties.get("current_heat_mode")
-        if current_heat_mode:
-            return (
-                self.device.properties["current_heat_mode"].value
-                == BradfordWhiteConnectHeatingModes.VACATION
-            )
-        else:
+        if current_heat_mode is None:
             return False
+        return current_heat_mode.value == BradfordWhiteConnectHeatingModes.VACATION
 
     async def async_set_operation_mode(self, operation_mode: str) -> None:
         """Set new target operation mode."""

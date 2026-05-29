@@ -5,6 +5,26 @@
 
 This custom component for Home Assistant adds support for managing your water heater via the Bradford White Connect platform.
 
+## Changes in 0.5.5
+
+The water heater entity now reports the **actual operating mode** the
+appliance is running, read from the device's live `current_heat_mode`
+telemetry — this matches what the unit's own front panel shows (verified
+against hardware: panel "Hybrid" ⇔ `current_heat_mode == HYBRID`).
+
+A separate **"Requested heat mode"** diagnostic sensor now exposes
+`user_heat_mode` (the last mode commanded via the app/HA). The appliance
+tracks these two independently — the mode you request vs. the mode it is
+actually in — and they can legitimately differ, so both are now visible.
+
+Note on stale data: `current_heat_mode`, `tank_temp`, and the other
+sensor readings are **device-pushed telemetry**. If the appliance loses
+power or network connectivity it stops publishing to the Bradford White
+cloud, and every reading freezes at its last value (with
+`connection_status` possibly still "Online"). Stale values mean the unit
+is offline — not that the integration is wrong. Check the appliance's
+power/Wi-Fi if readings stop advancing.
+
 ## Changes in 0.5.4
 
 Fixed a fault where the integration could silently stop updating: the
