@@ -428,17 +428,6 @@ PROPERTY_SENSORS: tuple[BWSensorDescription, ...] = (
         supported_fn=has_property("current_heat_mode"),
     ),
     BWSensorDescription(
-        key="user_heat_mode",
-        translation_key="user_heat_mode",
-        device_class=SensorDeviceClass.ENUM,
-        options=HEAT_MODE_OPTIONS,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda device: heat_mode_to_name(
-            get_device_property_value(device, "user_heat_mode")
-        ),
-        supported_fn=has_property("user_heat_mode"),
-    ),
-    BWSensorDescription(
         key="connection_status",
         translation_key="connection_status",
         entity_category=EntityCategory.DIAGNOSTIC,

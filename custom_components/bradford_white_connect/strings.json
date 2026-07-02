@@ -133,16 +133,6 @@
           "vacation": "Vacation"
         }
       },
-      "user_heat_mode": {
-        "name": "Requested heat mode",
-        "state": {
-          "hybrid": "Hybrid",
-          "electric": "Electric",
-          "heat_pump": "Heat pump",
-          "high_demand": "High demand",
-          "vacation": "Vacation"
-        }
-      },
       "connection_status": {
         "name": "Connection status"
       }

@@ -41,6 +41,12 @@ MODE_BRADFORDWHITE_TO_HA = {
     BradfordWhiteConnectHeatingModes.HYBRID: STATE_ECO,
     BradfordWhiteConnectHeatingModes.VACATION: STATE_OFF,
 }
+DEFAULT_OPERATION_LIST = [
+    STATE_ELECTRIC,
+    STATE_HEAT_PUMP,
+    STATE_OFF,
+    STATE_ECO,
+]
 
 # Priority list for operation mode to use when exiting away mode
 # Will use the first mode that is supported by the device
@@ -84,6 +90,21 @@ class BradfordWhiteConnectWaterHeaterEntity(
         super().__init__(coordinator, dsn, device)
         self._attr_unique_id = dsn
 
+    def _current_heat_mode_int(self) -> int | None:
+        """Return ``current_heat_mode`` as int, tolerating string payloads."""
+        current_heat_mode = self.device.properties.get("current_heat_mode")
+        if current_heat_mode is None or current_heat_mode.value is None:
+            return None
+        try:
+            return int(current_heat_mode.value)
+        except (TypeError, ValueError):
+            _LOGGER.warning(
+                "Device %s reported non-integer current_heat_mode %r",
+                self._dsn,
+                current_heat_mode.value,
+            )
+            return None
+
     def _supported_vendor_modes(self) -> list[int]:
         """Return the vendor heating-mode list for this appliance, or [] if unknown."""
         model_prop = self.device.properties.get("appliance_model_out")
@@ -106,7 +127,7 @@ class BradfordWhiteConnectWaterHeaterEntity(
             for mode in self._supported_vendor_modes()
             if MODE_BRADFORDWHITE_TO_HA.get(mode)
         ]
-        return ha_modes or [STATE_OFF]
+        return ha_modes or DEFAULT_OPERATION_LIST
 
     @property
     def supported_features(self) -> WaterHeaterEntityFeature:
@@ -147,30 +168,17 @@ class BradfordWhiteConnectWaterHeaterEntity(
 
     @property
     def current_operation(self) -> str:
-        """Return the mode the appliance is actually operating in.
-
-        Uses ``current_heat_mode`` — the firmware's live operating mode,
-        which is what the unit's own front panel displays (verified: panel
-        "Hybrid" ⇔ ``current_heat_mode == HYBRID``). This is distinct from
-        ``user_heat_mode`` (the last *requested* mode), which is surfaced
-        separately as the "Requested heat mode" diagnostic sensor.
-
-        Note ``current_heat_mode`` is device-pushed telemetry: if the
-        appliance loses connectivity it stops updating, so a stale value
-        means the unit is offline, not that the mode is wrong.
-        """
-        current_heat_mode = self.device.properties.get("current_heat_mode")
-        if current_heat_mode is None or current_heat_mode.value is None:
+        """Return the current operation mode."""
+        mode = self._current_heat_mode_int()
+        if mode is None:
             return STATE_OFF
-        return MODE_BRADFORDWHITE_TO_HA.get(current_heat_mode.value, STATE_OFF)
+        return MODE_BRADFORDWHITE_TO_HA.get(mode, STATE_OFF)
 
     @property
     def is_away_mode_on(self):
-        """Return True if the appliance is actually operating in vacation."""
-        current_heat_mode = self.device.properties.get("current_heat_mode")
-        if current_heat_mode is None:
-            return False
-        return current_heat_mode.value == BradfordWhiteConnectHeatingModes.VACATION
+        """Return True if away mode is on."""
+        mode = self._current_heat_mode_int()
+        return mode == BradfordWhiteConnectHeatingModes.VACATION
 
     async def async_set_operation_mode(self, operation_mode: str) -> None:
         """Set new target operation mode."""
@@ -222,6 +230,12 @@ class BradfordWhiteConnectWaterHeaterEntity(
             for mode in self._supported_vendor_modes()
             if mode != BradfordWhiteConnectHeatingModes.VACATION
         ]
+        if not supported_modes:
+            supported_modes = [
+                MODE_HA_TO_BRADFORDWHITE[mode]
+                for mode in DEFAULT_OPERATION_LIST
+                if mode != STATE_OFF
+            ]
 
         target_mode: int | None = next(
             (mode for mode in DEFAULT_OPERATION_MODE_PRIORITY if mode in supported_modes),

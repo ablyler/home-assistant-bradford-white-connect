@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import asyncio
 import datetime
 import json
 import logging
 from typing import Any
 
-import aiohttp
 from bradford_white_connect_client import (
     BradfordWhiteConnectAuthenticationError,
     BradfordWhiteConnectClient,
@@ -27,7 +25,6 @@ from .const import (
     ENERGY_USAGE_INTERVAL,
     FAST_INTERVAL,
     REGULAR_INTERVAL,
-    REQUEST_TIMEOUT,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,17 +35,36 @@ _DATAPOINT_URL = (
     "https://ads-field.aylanetworks.com/apiv1/dsns/{dsn}/properties/{name}/datapoints.json"
 )
 
-# Properties that must be present and within a sane range for the device to
-# be considered usable on a given coordinator refresh. A device that fails
-# this check is *skipped* for that update, not propagated as a hard error,
-# so a multi-heater account doesn't lose every entity because one heater
-# misbehaves.
+# Properties worth warning about when the cloud returns obviously bad data.
+# These checks are diagnostic only. We still keep the device in coordinator
+# data so HA entities remain available and can surface whatever values the
+# cloud did return.
 _REQUIRED_TEMP_PROPERTIES: tuple[str, ...] = (
     "tank_temp",
     "water_setpoint_out",
     "water_setpoint_min",
     "water_setpoint_max",
 )
+
+
+def _coerce_float(value: Any) -> float | None:
+    """Parse telemetry that may arrive as number-like strings."""
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _coerce_int(value: Any) -> int | None:
+    """Parse integer-like telemetry values safely."""
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Device]]):
@@ -102,8 +118,7 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
         payload_value: Any = (1 if value else 0) if isinstance(value, bool) else value
         data = json.dumps({"datapoint": {"value": payload_value}})
         _LOGGER.info("Writing %s=%r to device %s", name, payload_value, device.dsn)
-        async with asyncio.timeout(REQUEST_TIMEOUT.total_seconds()):
-            await self.client.http_post_request(url, headers=headers, data=data)
+        await self.client.http_post_request(url, headers=headers, data=data)
 
     def _refresh_update_interval(self) -> None:
         """Shorten the polling interval after a recent write, otherwise relax it."""
@@ -121,74 +136,64 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
             self.update_interval = REGULAR_INTERVAL
 
     @staticmethod
-    def _device_is_valid(device: Device) -> bool:
-        """Return True if the device's required telemetry looks sane.
-
-        Logs and rejects devices that are missing one of the required temp
-        properties or whose ``current_heat_mode`` is not in the published
-        enum. Logging happens at WARNING level so transient cloud weirdness
-        is visible without enabling debug logs.
-        """
+    def _log_device_warnings(device: Device) -> None:
+        """Log suspicious telemetry without dropping the device from HA."""
         for temp_property in _REQUIRED_TEMP_PROPERTIES:
             device_property = device.properties.get(temp_property)
             if device_property is None:
                 _LOGGER.warning(
-                    "Device %s missing required property %s; skipping this update",
+                    "Device %s missing expected property %s",
                     device.dsn,
                     temp_property,
                 )
-                return False
-            value = device_property.value
+                continue
+            raw_value = device_property.value
+            value = _coerce_float(raw_value)
             if value is None or value < 0 or value > 200:
                 _LOGGER.warning(
-                    "Device %s property %s out of range: %r; skipping this update",
+                    "Device %s property %s out of range: %r",
                     device.dsn,
                     temp_property,
-                    value,
+                    raw_value,
                 )
-                return False
 
         heat_mode = device.properties.get("current_heat_mode")
         if heat_mode is None:
             _LOGGER.warning(
-                "Device %s missing required property current_heat_mode; "
-                "skipping this update",
+                "Device %s missing expected property current_heat_mode",
                 device.dsn,
             )
-            return False
-        if not BradfordWhiteConnectHeatingModes.is_valid(heat_mode.value):
+            return
+        raw_mode = heat_mode.value
+        mode = _coerce_int(raw_mode)
+        if raw_mode is not None and mode is None:
             _LOGGER.warning(
-                "Device %s reported unknown current_heat_mode %r; skipping this update",
+                "Device %s reported non-integer current_heat_mode %r",
                 device.dsn,
-                heat_mode.value,
+                raw_mode,
             )
-            return False
-
-        return True
+        elif mode is not None and not BradfordWhiteConnectHeatingModes.is_valid(mode):
+            _LOGGER.warning(
+                "Device %s reported unknown current_heat_mode %r",
+                device.dsn,
+                raw_mode,
+            )
 
     async def _async_update_data(self) -> dict[str, Device]:
         """Fetch latest data from the device status endpoint."""
         self._refresh_update_interval()
         try:
-            async with asyncio.timeout(REQUEST_TIMEOUT.total_seconds()):
-                devices = await self.client.get_devices()
-                valid_devices: dict[str, Device] = {}
-                for device in devices:
-                    properties = await self.client.get_device_properties(device)
-                    device.properties = {
-                        p.property.name: p.property for p in properties
-                    }
-                    if not self._device_is_valid(device):
-                        continue
-                    valid_devices[device.dsn] = device
-                return valid_devices
+            devices = await self.client.get_devices()
+            valid_devices: dict[str, Device] = {}
+            for device in devices:
+                properties = await self.client.get_device_properties(device)
+                device.properties = {p.property.name: p.property for p in properties}
+                self._log_device_warnings(device)
+                valid_devices[device.dsn] = device
+            return valid_devices
         except BradfordWhiteConnectAuthenticationError as err:
             raise ConfigEntryAuthFailed from err
-        except (
-            BradfordWhiteConnectUnknownException,
-            aiohttp.ClientError,
-            TimeoutError,
-        ) as err:
+        except BradfordWhiteConnectUnknownException as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
 
@@ -218,31 +223,24 @@ class BradfordWhiteConnectEnergyCoordinator(
         usage_date = datetime.datetime.now() - datetime.timedelta(hours=1)
 
         try:
-            async with asyncio.timeout(REQUEST_TIMEOUT.total_seconds()):
-                devices = await self.client.get_devices()
+            devices = await self.client.get_devices()
 
-                for device in devices:
-                    heatpump_energy = await self.client.get_total_energy_usage_for_day(
-                        device, "hp", usage_date
-                    )
-                    resistance_energy = (
-                        await self.client.get_total_energy_usage_for_day(
-                            device, "re", usage_date
-                        )
-                    )
+            for device in devices:
+                heatpump_energy = await self.client.get_total_energy_usage_for_day(
+                    device, "hp", usage_date
+                )
+                resistance_energy = await self.client.get_total_energy_usage_for_day(
+                    device, "re", usage_date
+                )
 
-                    energy_usage_by_dsn[device.dsn] = {
-                        ENERGY_TYPE_HEAT_PUMP: heatpump_energy,
-                        ENERGY_TYPE_RESISTANCE: resistance_energy,
-                    }
+                energy_usage_by_dsn[device.dsn] = {
+                    ENERGY_TYPE_HEAT_PUMP: heatpump_energy,
+                    ENERGY_TYPE_RESISTANCE: resistance_energy,
+                }
 
         except BradfordWhiteConnectAuthenticationError as err:
             raise ConfigEntryAuthFailed from err
-        except (
-            BradfordWhiteConnectUnknownException,
-            aiohttp.ClientError,
-            TimeoutError,
-        ) as err:
+        except BradfordWhiteConnectUnknownException as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
         return energy_usage_by_dsn
