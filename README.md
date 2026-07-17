@@ -5,55 +5,16 @@
 
 This custom component for Home Assistant adds support for managing your water heater via the Bradford White Connect platform.
 
-## Changes in 0.5.5
+## What's new in 0.2.15
 
-The water heater entity now reports the **actual operating mode** the
-appliance is running, read from the device's live `current_heat_mode`
-telemetry — this matches what the unit's own front panel shows (verified
-against hardware: panel "Hybrid" ⇔ `current_heat_mode == HYBRID`).
+Version 0.2.15 expands the integration's telemetry, diagnostics, and
+device controls. It also reports the appliance's live operating mode via
+`current_heat_mode` and exposes `user_heat_mode` as a separate **Requested
+heat mode** diagnostic sensor. The requested and actual modes can differ.
 
-A separate **"Requested heat mode"** diagnostic sensor now exposes
-`user_heat_mode` (the last mode commanded via the app/HA). The appliance
-tracks these two independently — the mode you request vs. the mode it is
-actually in — and they can legitimately differ, so both are now visible.
-
-Note on stale data: `current_heat_mode`, `tank_temp`, and the other
-sensor readings are **device-pushed telemetry**. If the appliance loses
-power or network connectivity it stops publishing to the Bradford White
-cloud, and every reading freezes at its last value (with
-`connection_status` possibly still "Online"). Stale values mean the unit
-is offline — not that the integration is wrong. Check the appliance's
-power/Wi-Fi if readings stop advancing.
-
-## Changes in 0.5.4
-
-Fixed a fault where the integration could silently stop updating: the
-upstream `bradford-white-connect-client` issues its cloud HTTP calls
-without a timeout, so a stalled connection (e.g. a silently dropped
-keep-alive socket) could wedge a coordinator refresh forever, hold the
-coordinator lock, and permanently stop every entity from updating with
-no error logged — the only symptom was stale data until Home Assistant
-(or the config entry) was reloaded. Both the status and energy
-coordinators now bound each refresh with a 60-second timeout and treat
-`aiohttp.ClientError` / `TimeoutError` as a recoverable `UpdateFailed`,
-so a hung request fails fast and the next interval retries instead of
-freezing.
-
-(0.5.2 and 0.5.3 were tagged earlier with unrelated telemetry/parsing
-fixes; the manifest version had drifted back to 0.5.0 and is corrected
-here.)
-
-## Breaking changes in 0.5.0
-
-The following button entities were removed because the Bradford White
-cloud API has no write permission for the latched alarm/filter outputs
-they pretended to clear (see the alarm-sensor notes below for details).
-If you upgrade from 0.4.x they are automatically deleted from the entity
-registry; any automations that called them will need to be updated to
-use the keypad Service Mode procedure instead:
-
-- `button.bradford_white_*_clear_alarm_counts`
-- `button.bradford_white_*_reset_filter`
+Sensor values are device-pushed telemetry. If the appliance loses power or
+network connectivity, values can remain at their last reported state; the
+cloud-reported `connection_status` is informational only.
 
 ## Installation instructions
 
@@ -111,6 +72,7 @@ is actually reported by the unit, so the exact set varies by model and firmware.
 | `sensor`        | Tank size                           | Diagnostic |
 | `sensor`        | Appliance type / model              | Diagnostic |
 | `sensor`        | Current heat mode                   | Enum: hybrid / electric / heat_pump / high_demand / vacation |
+| `sensor`        | Requested heat mode                 | Last requested mode, diagnostic |
 | `sensor`        | DRM status                          | Utility load-shedding state |
 | `sensor`        | Active alarms                       | Set bit positions of the alarm bitmap (e.g. "bit 13 (tentative F14)"); raw bitmap + tentative descriptions in attributes — see notes below |
 | `sensor`        | Connection status                   | Cloud-reported status (informational only) |
@@ -128,7 +90,7 @@ is actually reported by the unit, so the exact set varies by model and firmware.
 | `switch`        | DRM service                         | Toggle DRM service acknowledgement |
 | `text`          | Heater name                         | Friendly name shown in the BW Connect app |
 
-### Notes on the alarm sensor and why there's no remote clear button
+### Notes on the alarm sensor and remote clear buttons
 
 The state of the **Active alarms** sensor reports the **bit positions**
 set in the raw `alarm` bitmap (e.g. `bit 13 (tentative F14)`). The raw
@@ -145,14 +107,11 @@ the description attribute as a hypothesis, not as authoritative.
 
 Bradford White's cloud API has no write permission for the latched
 `alarm` bitmap, `global_error`, or `water_overheat_notify` outputs:
-the `clear_alarm_counts` write only resets the controller's stored
-`alarm_count` string (it does not clear the latch), and field testing
-on personality 63A also shows that `reset_filter` is a no-op for the
-latched alarm bit on that unit. Because exposing those writes as
-buttons made the cloud limitation look like an integration bug, the
-**Clear alarm counts** and **Reset filter alarm** buttons were removed
-in 0.5.0. Use the keypad Service Mode procedure below to clear latched
-faults at the unit.
+the **Clear alarm counts** button only resets the controller's stored
+`alarm_count` value and does not clear a latched fault. Field testing on
+personality 63A also shows that **Reset filter** does not clear the
+latched alarm bit. Use the keypad Service Mode procedure below to clear
+latched faults at the unit.
 
 ### How to clear a latched fault at the unit
 
@@ -197,6 +156,13 @@ the API returns — is available via **Settings → Devices & Services →
 Bradford White Connect → Download diagnostics**. PII such as the DSN, MAC,
 LAN IP, geographic coordinates, and serial number are redacted before the
 file is written.
+
+## Contributors
+
+Thanks to [@disruptivepatternmaterial](https://github.com/disruptivepatternmaterial)
+for the expanded entity coverage, diagnostics, controls, and supporting tests
+merged in version 0.2.15. See [CONTRIBUTORS.md](CONTRIBUTORS.md) for the
+project's contributor acknowledgements.
 
 ## Troubleshooting
 
