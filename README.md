@@ -5,6 +5,56 @@
 
 This custom component for Home Assistant adds support for managing your water heater via the Bradford White Connect platform.
 
+## Changes in 0.5.5
+
+The water heater entity now reports the **actual operating mode** the
+appliance is running, read from the device's live `current_heat_mode`
+telemetry — this matches what the unit's own front panel shows (verified
+against hardware: panel "Hybrid" ⇔ `current_heat_mode == HYBRID`).
+
+A separate **"Requested heat mode"** diagnostic sensor now exposes
+`user_heat_mode` (the last mode commanded via the app/HA). The appliance
+tracks these two independently — the mode you request vs. the mode it is
+actually in — and they can legitimately differ, so both are now visible.
+
+Note on stale data: `current_heat_mode`, `tank_temp`, and the other
+sensor readings are **device-pushed telemetry**. If the appliance loses
+power or network connectivity it stops publishing to the Bradford White
+cloud, and every reading freezes at its last value (with
+`connection_status` possibly still "Online"). Stale values mean the unit
+is offline — not that the integration is wrong. Check the appliance's
+power/Wi-Fi if readings stop advancing.
+
+## Changes in 0.5.4
+
+Fixed a fault where the integration could silently stop updating: the
+upstream `bradford-white-connect-client` issues its cloud HTTP calls
+without a timeout, so a stalled connection (e.g. a silently dropped
+keep-alive socket) could wedge a coordinator refresh forever, hold the
+coordinator lock, and permanently stop every entity from updating with
+no error logged — the only symptom was stale data until Home Assistant
+(or the config entry) was reloaded. Both the status and energy
+coordinators now bound each refresh with a 60-second timeout and treat
+`aiohttp.ClientError` / `TimeoutError` as a recoverable `UpdateFailed`,
+so a hung request fails fast and the next interval retries instead of
+freezing.
+
+(0.5.2 and 0.5.3 were tagged earlier with unrelated telemetry/parsing
+fixes; the manifest version had drifted back to 0.5.0 and is corrected
+here.)
+
+## Breaking changes in 0.5.0
+
+The following button entities were removed because the Bradford White
+cloud API has no write permission for the latched alarm/filter outputs
+they pretended to clear (see the alarm-sensor notes below for details).
+If you upgrade from 0.4.x they are automatically deleted from the entity
+registry; any automations that called them will need to be updated to
+use the keypad Service Mode procedure instead:
+
+- `button.bradford_white_*_clear_alarm_counts`
+- `button.bradford_white_*_reset_filter`
+
 ## Installation instructions
 
 ### Using HACS
@@ -32,13 +82,121 @@ Click download and after this, restart Home Assistant.
 
 ## Supported entities
 
-This custom component creates following entities for each discovered water heater:
+This custom component creates the following entities for each discovered water
+heater. Entities backed by a device property are only created when the property
+is actually reported by the unit, so the exact set varies by model and firmware.
 
-| Platform       | Description                                  |
-| -------------- | -------------------------------------------- |
-| `water_heater` | Controller water heater                      |
-| `sensor`       | Resistance energy usage for the current year |
-| `sensor`       | Heat pump energy usage for the previous year |
+| Platform        | Entity                              | Notes |
+| --------------- | ----------------------------------- | --------------------------------- |
+| `water_heater`  | Controller                          | Current/target temperature, operation mode, away mode |
+| `sensor`        | Heat pump energy usage              | Daily kWh (heat pump) |
+| `sensor`        | Resistance energy usage             | Daily kWh (resistance element) |
+| `sensor`        | Daily / total energy                | When reported by the unit |
+| `sensor`        | Tank temperature (upper, lower)     | Lower only on dual-sensor units |
+| `sensor`        | Ambient temperature                 | Air around the appliance |
+| `sensor`        | Evaporator inlet / outlet temp      | Heat pump units only (diagnostic) |
+| `sensor`        | Compressor discharge temp           | Heat pump units only (diagnostic) |
+| `sensor`        | Evaporator superheat                | Heat pump units only (diagnostic) |
+| `sensor`        | Water setpoint (current / min / max) | Diagnostic |
+| `sensor`        | Heat pump / resistance power        | Live kW |
+| `sensor`        | Mains voltage / current             | Diagnostic |
+| `sensor`        | Heat pump / upper / lower element current | Diagnostic |
+| `sensor`        | Wi-Fi signal strength               | Diagnostic |
+| `sensor`        | Air filter dirtiness                | Diagnostic |
+| `sensor`        | Appliance runtime / compressor runtime | Total hours, diagnostic |
+| `sensor`        | Mode time remaining                 | Minutes, diagnostic |
+| `sensor`        | EEV position                        | Heat pump units only (diagnostic) |
+| `sensor`        | Hot water availability              | Percent of stored hot water |
+| `sensor`        | Stored / maximum thermal capacity   | Capacity readings |
+| `sensor`        | Tank size                           | Diagnostic |
+| `sensor`        | Appliance type / model              | Diagnostic |
+| `sensor`        | Current heat mode                   | Enum: hybrid / electric / heat_pump / high_demand / vacation |
+| `sensor`        | DRM status                          | Utility load-shedding state |
+| `sensor`        | Active alarms                       | Set bit positions of the alarm bitmap (e.g. "bit 13 (tentative F14)"); raw bitmap + tentative descriptions in attributes — see notes below |
+| `sensor`        | Connection status                   | Cloud-reported status (informational only) |
+| `binary_sensor` | Compressor running                  | Heat pump units only |
+| `binary_sensor` | Evaporator fan running              | Heat pump units only (diagnostic) |
+| `binary_sensor` | Upper / lower element running       | Electric resistance elements |
+| `binary_sensor` | Global error                        | Diagnostic problem indicator |
+| `binary_sensor` | Water overheat                      | Diagnostic problem indicator |
+| `button`        | Reboot controller                   | Writes `controller_reboot=1` |
+| `button`        | Reboot Wi-Fi                        | Writes `wifi_reboot=1` |
+| `number`        | Vacation mode days                  | 1-199 days, writes `set_vacation_mode_days` |
+| `number`        | Electric mode days                  | 1-99 days, writes `set_electric_mode_days` |
+| `number`        | Standard / vacation heat timer      | -1..365 days, writes `set_heat_timer_1` / `set_heat_timer_4` |
+| `switch`        | DRM advanced load-up                | Opt-in to utility advanced load-up behavior |
+| `switch`        | DRM service                         | Toggle DRM service acknowledgement |
+| `text`          | Heater name                         | Friendly name shown in the BW Connect app |
+
+### Notes on the alarm sensor and why there's no remote clear button
+
+The state of the **Active alarms** sensor reports the **bit positions**
+set in the raw `alarm` bitmap (e.g. `bit 13 (tentative F14)`). The raw
+bitmap is preserved on the sensor's `raw_bitmap` attribute alongside
+`active_bits`, `tentative_codes`, and `tentative_descriptions`.
+
+The F-code labels and English descriptions are a **best-guess** based on
+the Bradford White AeroTherm RE2H50/RE2H80 service quick-reference guide
+(P/N 31-75036-1, 03-15), which covers personalities up to 86A. Newer
+personalities (such as 63A on the RE2H65T10) appear to extend the fault
+table with codes BW has not published publicly, and the older mapping
+has been observed to disagree with field behavior on those units. Treat
+the description attribute as a hypothesis, not as authoritative.
+
+Bradford White's cloud API has no write permission for the latched
+`alarm` bitmap, `global_error`, or `water_overheat_notify` outputs:
+the `clear_alarm_counts` write only resets the controller's stored
+`alarm_count` string (it does not clear the latch), and field testing
+on personality 63A also shows that `reset_filter` is a no-op for the
+latched alarm bit on that unit. Because exposing those writes as
+buttons made the cloud limitation look like an integration bug, the
+**Clear alarm counts** and **Reset filter alarm** buttons were removed
+in 0.5.0. Use the keypad Service Mode procedure below to clear latched
+faults at the unit.
+
+### How to clear a latched fault at the unit
+
+If `Active alarms`, `Global error`, or `Water overheat` remains
+asserted after the underlying problem is resolved, the latch has to be
+cleared at the heater itself:
+
+1. **Verify there is no live fault first.** Look at the front-panel
+   LEDs. If a fault is actively shown (not just latched in history),
+   resolve the underlying cause before clearing.
+2. **Enter Service Mode.** On the front panel, press and hold the
+   **UP arrow + Enter** buttons simultaneously for ~5 seconds. You'll
+   hear a single beep when the buttons register, then a two-tone
+   acknowledgement.
+3. **Navigate to "View Faults and Counters."** Press **Mode** to cycle
+   through the five Service Mode functions until the **Hybrid** LED is
+   lit (that's the Faults function). The display shows the active fault
+   code or `- - -` if none.
+4. **Clear the fault history.** Press and hold **Enter** for ~5 seconds
+   and listen for the beep. This clears all stored fault codes and
+   counters on the controller.
+5. **Exit Service Mode.** Press and hold the **UP + Down arrows**
+   simultaneously for ~5 seconds (two beeps), or just wait 15 minutes
+   for the timeout.
+6. **For an actual TCO (over-temperature) trip**, the red TCO reset
+   button behind the upper access panel must also be physically pressed
+   before the latch will clear. The TCO opens at ~180°F and cuts power
+   to its element until reset.
+
+After the latch clears at the unit, the cloud-side output properties
+will follow within one or two Bradford White Connect refresh cycles
+and the HA sensors will update on the next coordinator update.
+
+Source: Bradford White AeroTherm RE2H50/RE2H80 service quick-reference
+guide (P/N 31-75036-1, 03-15). The procedure is the same on the newer
+RE2H65T10 / personality 63A.
+
+### Diagnostics
+
+A redacted snapshot of the cloud API data — including every device property
+the API returns — is available via **Settings → Devices & Services →
+Bradford White Connect → Download diagnostics**. PII such as the DSN, MAC,
+LAN IP, geographic coordinates, and serial number are redacted before the
+file is written.
 
 ## Troubleshooting
 

@@ -1,10 +1,13 @@
 """The base entity for the Bradford White Connect integration."""
 
+from __future__ import annotations
+
 from typing import TypeVar
 
 from bradford_white_connect_client import BradfordWhiteConnectClient
 from bradford_white_connect_client.types import Device
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -43,26 +46,45 @@ class BradfordWhiteConnectEntity(CoordinatorEntity[_BradfordWhiteConnectCoordina
 class BradfordWhiteConnectStatusEntity(
     BradfordWhiteConnectEntity[BradfordWhiteConnectStatusCoordinator]
 ):
-    """Base entity for entities that use data from the status coordinator."""
+    """Base entity for entities that use data from the status coordinator.
+
+    Availability is inherited from ``CoordinatorEntity``: the entity is
+    available whenever the coordinator's most recent update succeeded.
+    The cloud-reported ``device.connection_status`` field is intentionally
+    not used as an availability gate because it can report ``Offline`` for
+    devices that are reachable; it is exposed as a diagnostic sensor instead.
+    """
 
     @property
     def device(self) -> Device:
         """Shortcut to get the device from the coordinator data."""
         return self.coordinator.data[self._dsn]
 
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available.
 
-        Availability is governed by the coordinator's last-update success.
-        The previous strict `device.connection_status == "Online"` check was
-        removed because the cloud API can report `connection_status='Offline'`
-        for devices that are reachable — the BW Connect app shows the unit as
-        online and the coordinator successfully fetches device properties at
-        the regular interval. The field appears to track something other than
-        actual cloud reachability.
-        """
-        return super().available
+class BradfordWhiteConnectDescribedStatusEntity(BradfordWhiteConnectStatusEntity):
+    """Status-coordinator entity driven by an ``EntityDescription``.
+
+    Every per-platform property entity (button/binary_sensor/number/sensor/
+    switch/text) follows the same shape: take a description, set it on the
+    entity, and derive ``unique_id`` from ``{dsn}_{description.key}``. This
+    mixin folds that boilerplate into one place.
+
+    Concrete platform subclasses just declare the ``entity_description``
+    type annotation for their description subclass; they no longer need
+    to override ``__init__``.
+    """
+
+    def __init__(
+        self,
+        coordinator: BradfordWhiteConnectStatusCoordinator,
+        dsn: str,
+        device: Device,
+        description: EntityDescription,
+    ) -> None:
+        """Initialize the entity from a shared description."""
+        super().__init__(coordinator, dsn, device)
+        self.entity_description = description
+        self._attr_unique_id = f"{dsn}_{description.key}"
 
 
 class BradfordWhiteConnectEnergyEntity(
@@ -74,8 +96,3 @@ class BradfordWhiteConnectEnergyEntity(
     def energy_usage(self) -> float:
         """Shortcut to get the energy usage from the coordinator data."""
         return self.coordinator.data[self._dsn][self._energy_type]
-
-    # @property
-    # def available(self) -> bool:
-    #     """Return True if entity is available."""
-    #     return super().available and self._device.connection_status == "Online"
