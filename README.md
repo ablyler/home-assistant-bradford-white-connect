@@ -47,48 +47,48 @@ This custom component creates the following entities for each discovered water
 heater. Entities backed by a device property are only created when the property
 is actually reported by the unit, so the exact set varies by model and firmware.
 
-| Platform        | Entity                              | Notes |
-| --------------- | ----------------------------------- | --------------------------------- |
-| `water_heater`  | Controller                          | Current/target temperature, operation mode, away mode |
-| `sensor`        | Heat pump energy usage              | Daily kWh (heat pump) |
-| `sensor`        | Resistance energy usage             | Daily kWh (resistance element) |
-| `sensor`        | Daily / total energy                | When reported by the unit |
-| `sensor`        | Tank temperature (upper, lower)     | Lower only on dual-sensor units |
-| `sensor`        | Ambient temperature                 | Air around the appliance |
-| `sensor`        | Evaporator inlet / outlet temp      | Heat pump units only (diagnostic) |
-| `sensor`        | Compressor discharge temp           | Heat pump units only (diagnostic) |
-| `sensor`        | Evaporator superheat                | Heat pump units only (diagnostic) |
-| `sensor`        | Water setpoint (current / min / max) | Diagnostic |
-| `sensor`        | Heat pump / resistance power        | Live kW |
-| `sensor`        | Mains voltage / current             | Diagnostic |
-| `sensor`        | Heat pump / upper / lower element current | Diagnostic |
-| `sensor`        | Wi-Fi signal strength               | Diagnostic |
-| `sensor`        | Air filter dirtiness                | Diagnostic |
-| `sensor`        | Appliance runtime / compressor runtime | Total hours, diagnostic |
-| `sensor`        | Mode time remaining                 | Minutes, diagnostic |
-| `sensor`        | EEV position                        | Heat pump units only (diagnostic) |
-| `sensor`        | Hot water availability              | Percent of stored hot water |
-| `sensor`        | Stored / maximum thermal capacity   | Capacity readings |
-| `sensor`        | Tank size                           | Diagnostic |
-| `sensor`        | Appliance type / model              | Diagnostic |
-| `sensor`        | Current heat mode                   | Enum: hybrid / electric / heat_pump / high_demand / vacation |
-| `sensor`        | Requested heat mode                 | Last requested mode, diagnostic |
-| `sensor`        | DRM status                          | Utility load-shedding state |
-| `sensor`        | Active alarms                       | Set bit positions of the alarm bitmap (e.g. "bit 13 (tentative F14)"); raw bitmap + tentative descriptions in attributes — see notes below |
-| `sensor`        | Connection status                   | Cloud-reported status (informational only) |
-| `binary_sensor` | Compressor running                  | Heat pump units only |
-| `binary_sensor` | Evaporator fan running              | Heat pump units only (diagnostic) |
-| `binary_sensor` | Upper / lower element running       | Electric resistance elements |
-| `binary_sensor` | Global error                        | Diagnostic problem indicator |
-| `binary_sensor` | Water overheat                      | Diagnostic problem indicator |
-| `button`        | Reboot controller                   | Writes `controller_reboot=1` |
-| `button`        | Reboot Wi-Fi                        | Writes `wifi_reboot=1` |
-| `number`        | Vacation mode days                  | 1-199 days, writes `set_vacation_mode_days` |
-| `number`        | Electric mode days                  | 1-99 days, writes `set_electric_mode_days` |
-| `number`        | Standard / vacation heat timer      | -1..365 days, writes `set_heat_timer_1` / `set_heat_timer_4` |
-| `switch`        | DRM advanced load-up                | Opt-in to utility advanced load-up behavior |
-| `switch`        | DRM service                         | Toggle DRM service acknowledgement |
-| `text`          | Heater name                         | Friendly name shown in the BW Connect app |
+| Platform        | Entity                                    | Notes                                                                                                                                      |
+| --------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `water_heater`  | Controller                                | Current/target temperature, operation mode, away mode                                                                                      |
+| `sensor`        | Heat pump energy usage                    | Daily kWh (heat pump)                                                                                                                      |
+| `sensor`        | Resistance energy usage                   | Daily kWh (resistance element)                                                                                                             |
+| `sensor`        | Daily / total energy                      | When reported by the unit                                                                                                                  |
+| `sensor`        | Tank temperature (upper, lower)           | Lower only on dual-sensor units                                                                                                            |
+| `sensor`        | Ambient temperature                       | Air around the appliance                                                                                                                   |
+| `sensor`        | Evaporator inlet / outlet temp            | Heat pump units only (diagnostic)                                                                                                          |
+| `sensor`        | Compressor discharge temp                 | Heat pump units only (diagnostic)                                                                                                          |
+| `sensor`        | Evaporator superheat                      | Heat pump units only (diagnostic)                                                                                                          |
+| `sensor`        | Water setpoint (current / min / max)      | Diagnostic                                                                                                                                 |
+| `sensor`        | Heat pump / resistance power              | Live kW                                                                                                                                    |
+| `sensor`        | Mains voltage / current                   | Diagnostic                                                                                                                                 |
+| `sensor`        | Heat pump / upper / lower element current | Diagnostic                                                                                                                                 |
+| `sensor`        | Wi-Fi signal strength                     | Diagnostic                                                                                                                                 |
+| `sensor`        | Air filter dirtiness                      | Diagnostic                                                                                                                                 |
+| `sensor`        | Appliance runtime / compressor runtime    | Total hours, diagnostic                                                                                                                    |
+| `sensor`        | Mode time remaining                       | Minutes, diagnostic                                                                                                                        |
+| `sensor`        | EEV position                              | Heat pump units only (diagnostic)                                                                                                          |
+| `sensor`        | Hot water availability                    | Percent of stored hot water                                                                                                                |
+| `sensor`        | Stored / maximum thermal capacity         | Capacity readings                                                                                                                          |
+| `sensor`        | Tank size                                 | Diagnostic                                                                                                                                 |
+| `sensor`        | Appliance type / model                    | Diagnostic                                                                                                                                 |
+| `sensor`        | Current heat mode                         | Enum: hybrid / electric / heat_pump / high_demand / vacation                                                                               |
+| `sensor`        | Requested heat mode                       | Last requested mode, diagnostic                                                                                                            |
+| `sensor`        | DRM status                                | Utility load-shedding state                                                                                                                |
+| `sensor`        | Active alarms                             | Set bit positions of the alarm bitmap (e.g. "bit 13 (tentative F14)"); raw bitmap + tentative descriptions in attributes — see notes below |
+| `sensor`        | Connection status                         | Cloud-reported status (informational only)                                                                                                 |
+| `binary_sensor` | Compressor running                        | Heat pump units only                                                                                                                       |
+| `binary_sensor` | Evaporator fan running                    | Heat pump units only (diagnostic)                                                                                                          |
+| `binary_sensor` | Upper / lower element running             | Electric resistance elements                                                                                                               |
+| `binary_sensor` | Global error                              | Diagnostic problem indicator                                                                                                               |
+| `binary_sensor` | Water overheat                            | Diagnostic problem indicator                                                                                                               |
+| `button`        | Reboot controller                         | Writes `controller_reboot=1`                                                                                                               |
+| `button`        | Reboot Wi-Fi                              | Writes `wifi_reboot=1`                                                                                                                     |
+| `number`        | Vacation mode days                        | 1-199 days, writes `set_vacation_mode_days`                                                                                                |
+| `number`        | Electric mode days                        | 1-99 days, writes `set_electric_mode_days`                                                                                                 |
+| `number`        | Standard / vacation heat timer            | -1..365 days, writes `set_heat_timer_1` / `set_heat_timer_4`                                                                               |
+| `switch`        | DRM advanced load-up                      | Opt-in to utility advanced load-up behavior                                                                                                |
+| `switch`        | DRM service                               | Toggle DRM service acknowledgement                                                                                                         |
+| `text`          | Heater name                               | Friendly name shown in the BW Connect app                                                                                                  |
 
 ### Notes on the alarm sensor and remote clear buttons
 

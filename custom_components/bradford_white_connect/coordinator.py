@@ -31,9 +31,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Ayla datapoint write endpoint (same shape the upstream client uses for
 # the two specialised setters - we just parametrise the property name).
-_DATAPOINT_URL = (
-    "https://ads-field.aylanetworks.com/apiv1/dsns/{dsn}/properties/{name}/datapoints.json"
-)
+_DATAPOINT_URL = "https://ads-field.aylanetworks.com/apiv1/dsns/{dsn}/properties/{name}/datapoints.json"
 
 # Properties worth warning about when the cloud returns obviously bad data.
 # These checks are diagnostic only. We still keep the device in coordinator
@@ -76,9 +74,7 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
         self.client = client
         self.shared_data: dict[str, Any] = {}
 
-    async def async_set_property(
-        self, device: Device, name: str, value: Any
-    ) -> None:
+    async def async_set_property(self, device: Device, name: str, value: Any) -> None:
         """Write a single property's datapoint to the Ayla cloud.
 
         The upstream ``bradford_white_connect_client`` only exposes
@@ -126,9 +122,7 @@ class BradfordWhiteConnectStatusCoordinator(DataUpdateCoordinator[dict[str, Devi
         if last_set is None:
             self.update_interval = REGULAR_INTERVAL
             return
-        if (
-            datetime.datetime.now(datetime.timezone.utc) - last_set
-        ) < REGULAR_INTERVAL:
+        if (datetime.datetime.now(datetime.timezone.utc) - last_set) < REGULAR_INTERVAL:
             _LOGGER.debug("Setting fast update interval")
             self.update_interval = FAST_INTERVAL
         else:

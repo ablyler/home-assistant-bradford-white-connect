@@ -238,7 +238,11 @@ class BradfordWhiteConnectWaterHeaterEntity(
             ]
 
         target_mode: int | None = next(
-            (mode for mode in DEFAULT_OPERATION_MODE_PRIORITY if mode in supported_modes),
+            (
+                mode
+                for mode in DEFAULT_OPERATION_MODE_PRIORITY
+                if mode in supported_modes
+            ),
             None,
         )
         if target_mode is None:

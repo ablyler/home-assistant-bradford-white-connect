@@ -18,9 +18,9 @@ touch, so the test outcome is identical against either.
 
 from __future__ import annotations
 
+from pathlib import Path
 import sys
 import types
-from pathlib import Path
 
 
 def _install_upstream_client_stub() -> None:
