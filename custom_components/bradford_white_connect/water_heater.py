@@ -1,6 +1,6 @@
 """The water heater platform for the Bradford White Connect integration."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 from typing import Any
 
@@ -41,6 +41,12 @@ MODE_BRADFORDWHITE_TO_HA = {
     BradfordWhiteConnectHeatingModes.HYBRID: STATE_ECO,
     BradfordWhiteConnectHeatingModes.VACATION: STATE_OFF,
 }
+DEFAULT_OPERATION_LIST = [
+    STATE_ELECTRIC,
+    STATE_HEAT_PUMP,
+    STATE_OFF,
+    STATE_ECO,
+]
 
 # Priority list for operation mode to use when exiting away mode
 # Will use the first mode that is supported by the device
@@ -83,31 +89,45 @@ class BradfordWhiteConnectWaterHeaterEntity(
         """Initialize the entity."""
         super().__init__(coordinator, dsn, device)
         self._attr_unique_id = dsn
-        self._device = device
 
-    @property
-    def operation_list(self) -> list[str]:
-        """Return the list of supported operation modes."""
+    def _current_heat_mode_int(self) -> int | None:
+        """Return ``current_heat_mode`` as int, tolerating string payloads."""
+        current_heat_mode = self.device.properties.get("current_heat_mode")
+        if current_heat_mode is None or current_heat_mode.value is None:
+            return None
+        try:
+            return int(current_heat_mode.value)
+        except (TypeError, ValueError):
+            _LOGGER.warning(
+                "Device %s reported non-integer current_heat_mode %r",
+                self._dsn,
+                current_heat_mode.value,
+            )
+            return None
 
-        # Get the appliance model for the device
-        appliance_model = self.device.properties.get(
-            "appliance_model_out"
-        ).value.strip()
-
-        # Get the heating modes for the appliance model
-        appliance_heating_modes = (
+    def _supported_vendor_modes(self) -> list[int]:
+        """Return the vendor heating-mode list for this appliance, or [] if unknown."""
+        model_prop = self.device.properties.get("appliance_model_out")
+        if model_prop is None or not getattr(model_prop, "value", None):
+            return []
+        appliance_model = model_prop.value.strip()
+        if not appliance_model:
+            return []
+        return list(
             BradfordWhiteConnectHelper.get_appliance_model_heating_modes(
                 appliance_model
             )
         )
 
-        # Translate the bradford white heating modes to HA modes
+    @property
+    def operation_list(self) -> list[str]:
+        """Return the list of supported operation modes."""
         ha_modes = [
             MODE_BRADFORDWHITE_TO_HA.get(mode)
-            for mode in appliance_heating_modes
+            for mode in self._supported_vendor_modes()
             if MODE_BRADFORDWHITE_TO_HA.get(mode)
         ]
-        return ha_modes
+        return ha_modes or DEFAULT_OPERATION_LIST
 
     @property
     def supported_features(self) -> WaterHeaterEntityFeature:
@@ -149,25 +169,16 @@ class BradfordWhiteConnectWaterHeaterEntity(
     @property
     def current_operation(self) -> str:
         """Return the current operation mode."""
-        current_heat_mode = self.device.properties.get("current_heat_mode")
-        if current_heat_mode:
-            return MODE_BRADFORDWHITE_TO_HA.get(
-                self.device.properties["current_heat_mode"].value, STATE_OFF
-            )
-        else:
+        mode = self._current_heat_mode_int()
+        if mode is None:
             return STATE_OFF
+        return MODE_BRADFORDWHITE_TO_HA.get(mode, STATE_OFF)
 
     @property
     def is_away_mode_on(self):
         """Return True if away mode is on."""
-        current_heat_mode = self.device.properties.get("current_heat_mode")
-        if current_heat_mode:
-            return (
-                self.device.properties["current_heat_mode"].value
-                == BradfordWhiteConnectHeatingModes.VACATION
-            )
-        else:
-            return False
+        mode = self._current_heat_mode_int()
+        return mode == BradfordWhiteConnectHeatingModes.VACATION
 
     async def async_set_operation_mode(self, operation_mode: str) -> None:
         """Set new target operation mode."""
@@ -178,7 +189,9 @@ class BradfordWhiteConnectWaterHeaterEntity(
         if vendor_mode is not None:
             _LOGGER.info("Setting operation mode to %s", operation_mode)
             await self.client.set_device_heat_mode(self.device, vendor_mode)
-            self.coordinator.shared_data["last_api_set_datetime"] = datetime.now()
+            self.coordinator.shared_data["last_api_set_datetime"] = datetime.now(
+                timezone.utc
+            )
             await self.coordinator.async_request_refresh()
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
@@ -187,7 +200,9 @@ class BradfordWhiteConnectWaterHeaterEntity(
         if temperature is not None:
             _LOGGER.info("Setting temperature to %s", temperature)
             await self.client.update_device_set_point(self.device, temperature)
-            self.coordinator.shared_data["last_api_set_datetime"] = datetime.now()
+            self.coordinator.shared_data["last_api_set_datetime"] = datetime.now(
+                timezone.utc
+            )
             await self.coordinator.async_request_refresh()
 
     async def async_turn_away_mode_on(self) -> None:
@@ -196,14 +211,47 @@ class BradfordWhiteConnectWaterHeaterEntity(
         await self.client.set_device_heat_mode(
             self.device, BradfordWhiteConnectHeatingModes.VACATION
         )
-        self.coordinator.shared_data["last_api_set_datetime"] = datetime.now()
+        self.coordinator.shared_data["last_api_set_datetime"] = datetime.now(
+            timezone.utc
+        )
         await self.coordinator.async_request_refresh()
 
     async def async_turn_away_mode_off(self) -> None:
-        """Turn away mode off."""
-        for mode in DEFAULT_OPERATION_MODE_PRIORITY:
-            _LOGGER.info("Setting away mode off, trying mode: %s", mode)
-            await self.client.set_device_heat_mode(self.device, mode)
-            self.coordinator.shared_data["last_api_set_datetime"] = datetime.now()
-            await self.coordinator.async_request_refresh()
-            break
+        """Turn away mode off by switching back to the best supported mode.
+
+        Picks the first entry from ``DEFAULT_OPERATION_MODE_PRIORITY`` that
+        the appliance actually supports. If none of the preferred modes are
+        in the supported list (or the list is empty because the model is
+        unknown), falls back to the first non-vacation mode the appliance
+        reports.
+        """
+        supported_modes = [
+            mode
+            for mode in self._supported_vendor_modes()
+            if mode != BradfordWhiteConnectHeatingModes.VACATION
+        ]
+        if not supported_modes:
+            supported_modes = [
+                MODE_HA_TO_BRADFORDWHITE[mode]
+                for mode in DEFAULT_OPERATION_LIST
+                if mode != STATE_OFF
+            ]
+
+        target_mode: int | None = next(
+            (mode for mode in DEFAULT_OPERATION_MODE_PRIORITY if mode in supported_modes),
+            None,
+        )
+        if target_mode is None:
+            target_mode = supported_modes[0] if supported_modes else None
+
+        if target_mode is None:
+            raise HomeAssistantError(
+                "No supported non-vacation heating modes available to exit away mode"
+            )
+
+        _LOGGER.info("Setting away mode off, switching to mode: %s", target_mode)
+        await self.client.set_device_heat_mode(self.device, target_mode)
+        self.coordinator.shared_data["last_api_set_datetime"] = datetime.now(
+            timezone.utc
+        )
+        await self.coordinator.async_request_refresh()
