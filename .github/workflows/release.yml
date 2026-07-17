@@ -1,12 +1,15 @@
 name: Release
 
 "on":
-  workflow_dispatch:
+  workflow_dispatch: {}
   push:
     branches:
       - main
     paths:
-      - "custom_components/bradford_white_connect/**"
+      - custom_components/bradford_white_connect/**
+
+permissions:
+  contents: read
 
 concurrency:
   group: release-main
@@ -16,11 +19,6 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    permissions:
-      checks: write
-      contents: write
-      issues: write
-      pull-requests: write
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
