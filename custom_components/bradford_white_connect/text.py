@@ -57,9 +57,7 @@ async def async_setup_entry(
     )
 
 
-class BradfordWhiteConnectText(
-    BradfordWhiteConnectDescribedStatusEntity, TextEntity
-):
+class BradfordWhiteConnectText(BradfordWhiteConnectDescribedStatusEntity, TextEntity):
     """Writable text input backed by an Ayla string property."""
 
     entity_description: BWTextDescription

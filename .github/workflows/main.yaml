@@ -123,14 +123,10 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: 3.11
-      - name: Install pipenv
-        env:
-          PIPENV_VENV_IN_PROJECT: true
-        run: |
-          pip install pipenv
-          pipenv install --dev
+      - name: Install test dependencies
+        run: pip install pytest
       - name: Run pytest
-        run: pipenv run pytest -q
+        run: pytest -q
 
   release:
     name: GitHub (Pre)Release

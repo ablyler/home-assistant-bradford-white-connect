@@ -31,10 +31,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from bradford_white_connect_client.constants import (
-    BradfordWhiteConnectHeatingModes,
-)
-
+from bradford_white_connect_client.constants import BradfordWhiteConnectHeatingModes
 
 FAULT_CODES: dict[int, str] = {
     1: "Tank sensor (T2) failure",
@@ -95,9 +92,7 @@ def decode_alarm_bitmap(bitmap: str | None) -> list[dict[str, str | int]]:
         if char != "1":
             continue
         fault_number = index + 1
-        description = FAULT_CODES.get(
-            fault_number, f"Unknown fault (bit {index})"
-        )
+        description = FAULT_CODES.get(fault_number, f"Unknown fault (bit {index})")
         active.append(
             {
                 "bit": index,

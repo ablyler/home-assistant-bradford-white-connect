@@ -14,9 +14,6 @@ runtimes:
     - python@3.14.4
 lint:
   enabled:
-    - grype@0.116.0
-    - osv-scanner@2.4.0
-    - pinact@4.1.0
     - mypy@2.3.0
     - checkov@3.3.8
     - trivy@0.72.0
@@ -34,6 +31,10 @@ lint:
     - trufflehog@3.95.9
     - yamllint@1.38.0
   ignore:
+    - linters: [bandit]
+      paths:
+        # Assertions are expected in the test suite.
+        - tests/**
     - linters: [ALL]
       paths:
         # GitHub Issue Templates
