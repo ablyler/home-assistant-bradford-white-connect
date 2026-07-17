@@ -1,0 +1,147 @@
+name: Release
+
+"on":
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "custom_components/bradford_white_connect/**"
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install pipenv
+        env:
+          PIPENV_VENV_IN_PROJECT: true
+        run: |
+          pip install pipenv
+          pipenv install
+      - name: Run Trunk Check
+        uses: trunk-io/trunk-action@v1
+
+  validate-hassfest:
+    name: Hassfest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Validate Hassfest
+        uses: home-assistant/actions/hassfest@master
+
+  validate-hacs:
+    name: HACS
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Validate HACS
+        uses: hacs/action@main
+        with:
+          category: integration
+          ignore: brands
+
+  test:
+    name: Pytest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: pip install pytest
+      - name: Run pytest
+        run: pytest -q
+
+  release:
+    needs: [lint, validate-hassfest, validate-hacs, test]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Calculate release version
+        id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          release_tags="$(gh release list --limit 100 --json tagName --jq '.[].tagName')"
+          latest_tag="$(printf '%s\n' "$release_tags" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1 || true)"
+
+          if [ -n "$latest_tag" ]; then
+            current_version="${latest_tag#v}"
+            patch="${current_version##*.}"
+            version="${current_version%.*}.$((patch + 1))"
+          else
+            version="$(python3 -c 'import json; print(json.load(open("custom_components/bradford_white_connect/manifest.json"))["version"])')"
+            if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Manifest version is not a semantic version: $version" >&2
+              exit 1
+            fi
+          fi
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${version}" >> "$GITHUB_OUTPUT"
+          echo "Using version: v${version}"
+
+      - name: Update manifest version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest = Path('custom_components/bradford_white_connect/manifest.json')
+          data = json.loads(manifest.read_text())
+          data['version'] = os.environ['VERSION']
+          manifest.write_text(json.dumps(data, indent=2) + '\n')
+          PY
+
+      - name: Create release archive
+        run: |
+          cd custom_components
+          zip -r ../bradford_white_connect.zip bradford_white_connect
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          files: bradford_white_connect.zip

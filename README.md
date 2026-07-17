@@ -31,6 +31,10 @@ Click download and after this, restart Home Assistant.
 2. Clone this repository.
 3. Copy the `custom_components/bradford_white_connect` folder into your Home Assistant's `custom_components` folder.
 
+## Releases
+
+Changes to the integration merged into `main` are released automatically after lint, Hassfest, HACS, and pytest validation pass. Each release increments the semantic patch version (for example, `0.2.15` to `0.2.16`) and uses the corresponding `v0.2.16` Git tag. Maintainers can also run the **Release** workflow manually from the Actions tab.
+
 ## Configuring
 
 1. Add `Bradford White Connect` integration via UI. Using My Home Assistant service, you can click on:\
