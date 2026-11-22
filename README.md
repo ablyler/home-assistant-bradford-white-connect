@@ -3,7 +3,10 @@
 [![GitHub Release][releases-shield]][releases]
 [![hacs][hacsbadge]][hacs]
 
-This custom component for Home Assistant adds support for managing your water heater via the Bradford White Connect platform.
+This custom component for Home Assistant adds support for managing your water heater via the **Bradford White Connect** platform.
+
+> [!NOTE]
+> This integration only supports accounts and water heaters that use the **Bradford White Connect** app (Ayla Networks platform). Water heaters that use the **Bradford White Wave** app (such as newer AeroTherm G2 units with built-in Wi-Fi) use a different platform and are not supported.
 
 ## What's new in 0.2.15
 
@@ -37,13 +40,11 @@ Changes to the integration merged into `main` are released automatically after l
 
 ## Configuring
 
-1. Add `Bradford White Connect` integration via UI. Using My Home Assistant service, you can click on:\
+1. Add the `Bradford White Connect` integration via the Home Assistant UI. Using My Home Assistant, you can click:\
    [![Add Bradford White Connect][add-integration-badge]][add-integration]\
-   Or add it to Home Assistant by going to `Configuration -> Devices & Services`, clicking `+ Add Integration` and searching for `Bradford White Connect`.
-2. Enter Bradford White Connect cloud hostname, account id, username, and password.
-3. The integration will discover appliance on local network(s).
-4. If an appliance is not automatically discovered, but is registered to the cloud account, user is prompted to enter IPv4 address of the appliance.
-5. If you want to use integration with air conditioner unit(s), please select the checkbox on `Advanced settings` page.
+   Or go to `Settings -> Devices & Services`, click `+ Add Integration`, and search for `Bradford White Connect`.
+2. Enter your **Bradford White Connect** email address and password.
+3. The integration will authenticate with the Bradford White Connect cloud API and discover the water heaters registered to your account.
 
 ## Supported entities
 
