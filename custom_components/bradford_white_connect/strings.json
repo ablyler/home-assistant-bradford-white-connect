@@ -5,7 +5,7 @@
       "reauth_successful": "Re-authentication was successful"
     },
     "error": {
-      "invalid_auth": "Invalid authentication. Check your Bradford White Connect email and password (Bradford White Wave accounts are not supported).",
+      "invalid_auth": "Invalid email or password. Bradford White Wave accounts are not supported.",
       "unknown": "Unexpected error"
     },
     "step": {
